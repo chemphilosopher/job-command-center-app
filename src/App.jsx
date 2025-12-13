@@ -171,12 +171,12 @@ const OUTREACH_CHANNEL_OPTIONS = [
 // Sample Resume Versions
 const SAMPLE_RESUME_VERSIONS = [
   {
-    id: 'v3-vaccines-focused',
-    name: 'Vaccines Focused',
-    description: 'Emphasizes vaccine development, stability studies, and immunoassay experience',
+    id: 'v3-gene-therapy-focused',
+    name: 'Gene Therapy Focused',
+    description: 'Emphasizes AAV characterization, viral vector analytics, and gene therapy product development',
     createdDate: '2025-11-15',
-    targetRoles: 'Senior roles at vaccine-focused companies',
-    keyHighlights: ['Vaccine stability expertise', 'Immunoassay development', 'Tech transfer experience']
+    targetRoles: 'Senior roles at gene therapy companies',
+    keyHighlights: ['AAV characterization', 'Viral vector analytics', 'Potency assay development']
   },
   {
     id: 'v2-broad-analytical',
