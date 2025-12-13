@@ -123,7 +123,7 @@ const COMPANY_TYPE_OPTIONS = [
 ]
 
 const MODALITY_OPTIONS = [
-  'mRNA/LNP',
+  'Protein Therapeutics',
   'AAV Gene Therapy',
   'Vaccines',
   'mAb/Biologics',
@@ -170,12 +170,12 @@ const OUTREACH_CHANNEL_OPTIONS = [
 // Sample Resume Versions
 const SAMPLE_RESUME_VERSIONS = [
   {
-    id: 'v3-mRNA-focused',
-    name: 'mRNA/LNP Focused',
-    description: 'Emphasizes CSL Seqirus mRNA platform work, stability studies, and LNP characterization',
+    id: 'v3-vaccines-focused',
+    name: 'Vaccines Focused',
+    description: 'Emphasizes vaccine development, stability studies, and immunoassay experience',
     createdDate: '2025-11-15',
-    targetRoles: 'Senior roles at mRNA-focused companies',
-    keyHighlights: ['mRNA stability expertise', 'LNP characterization', 'Tech transfer experience']
+    targetRoles: 'Senior roles at vaccine-focused companies',
+    keyHighlights: ['Vaccine stability expertise', 'Immunoassay development', 'Tech transfer experience']
   },
   {
     id: 'v2-broad-analytical',
@@ -298,7 +298,7 @@ const SAMPLE_OUTREACH_TEMPLATES = [
 
 I just applied for the {{roleTitle}} position ({{requisitionId}}) at {{companyName}}.
 
-Quick intro: I'm an Associate Director in analytical development with ~10 years in biologics/mRNA, currently leading a team doing cellular, molecular, and separations assays to support GMP manufacturing and CMC.
+Quick intro: I'm an Associate Director in analytical development with ~10 years in biologics, currently leading a team doing cellular, molecular, and separations assays to support GMP manufacturing and CMC.
 
 From the posting, I saw emphasis on {{keyRequirement}}. That's been my focus for the past several years – especially {{relevantAccomplishment}}.
 
@@ -2715,7 +2715,7 @@ function ApplicationDetailModal({ application, resumeVersions, onClose, onSave, 
                     onChange={handleChange}
                     rows={4}
                     className={textareaClasses}
-                    placeholder="- Why this company?&#10;- Leadership examples&#10;- Technical deep-dive: mRNA stability&#10;- Method validation experience"
+                    placeholder="- Why this company?&#10;- Leadership examples&#10;- Technical deep-dive: stability studies&#10;- Method validation experience"
                   />
                 </div>
 
@@ -3086,7 +3086,7 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
                   value={formData.name}
                   onChange={handleChange}
                   className={inputClasses}
-                  placeholder="e.g., mRNA/LNP Focused"
+                  placeholder="e.g., Vaccines Focused"
                 />
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
@@ -3134,7 +3134,7 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
                   onChange={handleChange}
                   rows={4}
                   className={inputClasses}
-                  placeholder="mRNA stability expertise&#10;LNP characterization&#10;Tech transfer experience"
+                  placeholder="Method development expertise&#10;Protein characterization&#10;Tech transfer experience"
                 />
               </div>
 
