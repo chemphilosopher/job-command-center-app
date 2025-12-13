@@ -190,24 +190,24 @@ const SAMPLE_RESUME_VERSIONS = [
 // Sample Target Companies
 const SAMPLE_TARGET_COMPANIES = [
   {
-    id: 'tc-moderna',
-    name: 'Moderna',
+    id: 'tc-genentech',
+    name: 'Genentech',
     category: 'Large Pharma',
     priority: 1,
     status: 'Applied',
-    careersUrl: 'https://careers.modernatx.com',
+    careersUrl: 'https://careers.gene.com',
     research: {
-      overview: 'Leading mRNA therapeutics company. Pioneer in COVID-19 vaccines, expanding into rare diseases, cancer, and infectious diseases.',
+      overview: 'Pioneer in biotechnology and protein therapeutics. Part of Roche group. Leader in oncology, immunology, and ophthalmology biologics.',
       recentNews: [
-        { date: '2025-11-20', headline: 'Expanded RTP facility for mRNA production', notes: 'Hiring analytical roles' }
+        { date: '2025-11-20', headline: 'Expanding South San Francisco campus', notes: 'Hiring across analytical development' }
       ],
       keyPeople: [
-        { name: 'Dr. Sarah Chen', title: 'VP, Analytical Development', linkedin: '', notes: 'Background in mAb analytics at Genentech' }
+        { name: 'Dr. Sarah Chen', title: 'VP, Analytical Development', linkedin: '', notes: 'Background in protein characterization' }
       ],
-      painPoints: ['Scaling analytical methods for commercial manufacturing', 'Building out CMC capabilities'],
-      products: 'mRNA vaccines (COVID, flu, RSV), rare disease programs, oncology pipeline',
-      culture: 'Fast-paced, innovation-driven, high expectations',
-      whyTheyWantMe: 'mRNA stability expertise, tech transfer experience, leadership at scale',
+      painPoints: ['Scaling analytical methods for biosimilar defense', 'Next-gen protein therapeutics characterization'],
+      products: 'Herceptin, Avastin, Rituxan, Ocrevus, and extensive oncology/immunology pipeline',
+      culture: 'Scientific excellence, collaborative, innovation-focused',
+      whyTheyWantMe: 'Protein therapeutics expertise, method development experience, leadership capabilities',
       lastResearched: '2025-11-25'
     },
     connections: [
@@ -222,29 +222,29 @@ const SAMPLE_TARGET_COMPANIES = [
         notes: 'Intro made, scheduled coffee chat for Dec 5'
       }
     ],
-    notes: 'Top priority - strong mRNA fit, growing analytical team',
+    notes: 'Top priority - strong protein therapeutics fit, excellent reputation',
     createdAt: '2025-11-01T10:00:00Z',
     updatedAt: '2025-11-25T14:00:00Z'
   },
   {
-    id: 'tc-biontech',
-    name: 'BioNTech',
-    category: 'Mid-size Biotech',
+    id: 'tc-merck',
+    name: 'Merck',
+    category: 'Large Pharma',
     priority: 2,
     status: 'Researching',
-    careersUrl: 'https://biontech.com/careers',
+    careersUrl: 'https://jobs.merck.com',
     research: {
-      overview: 'German biotech with US presence. mRNA vaccines and cancer immunotherapies.',
+      overview: 'Global pharmaceutical leader with strong vaccines division. Headquarters in West Point, PA with extensive R&D operations.',
       recentNews: [],
       keyPeople: [],
-      painPoints: [],
-      products: 'COVID vaccine (with Pfizer), oncology pipeline',
-      culture: 'Scientific rigor, German engineering approach',
-      whyTheyWantMe: '',
+      painPoints: ['Vaccine production scale-up', 'Next-generation vaccine platforms'],
+      products: 'Keytruda (oncology), Gardasil (HPV vaccine), Pneumovax, extensive vaccine portfolio',
+      culture: 'Research-driven, patient-focused, strong scientific community',
+      whyTheyWantMe: 'Vaccine analytical experience, stability expertise',
       lastResearched: '2025-11-15'
     },
     connections: [],
-    notes: 'Need to research Cambridge office more',
+    notes: 'Strong vaccines focus - research West Point campus opportunities',
     createdAt: '2025-11-05T10:00:00Z',
     updatedAt: '2025-11-15T10:00:00Z'
   },
@@ -256,17 +256,17 @@ const SAMPLE_TARGET_COMPANIES = [
     status: 'Applied',
     careersUrl: 'https://lilly.com/careers',
     research: {
-      overview: 'Major pharma with strong RTP presence. Diabetes, oncology, immunology focus.',
+      overview: 'Major pharma headquartered in Indianapolis, IN. Strong presence in diabetes, oncology, immunology, and neuroscience.',
       recentNews: [
-        { date: '2025-11-10', headline: 'Expanding biologics manufacturing in RTP', notes: 'Multiple analytical roles posted' }
+        { date: '2025-11-10', headline: 'Expanding analytical capabilities in Indianapolis', notes: 'Multiple analytical roles posted' }
       ],
       keyPeople: [
         { name: 'John Martinez', title: 'Director, Analytical Sciences', linkedin: '', notes: '' }
       ],
-      painPoints: ['Biologics capacity expansion', 'Method transfer efficiency'],
-      products: 'Diabetes (Mounjaro, Trulicity), oncology, immunology',
+      painPoints: ['Broad analytical method development', 'Supporting diverse modality pipeline'],
+      products: 'Mounjaro, Trulicity (diabetes), Verzenio (oncology), diverse pipeline across modalities',
       culture: 'Established, process-oriented, good work-life balance',
-      whyTheyWantMe: 'Tech transfer expertise, biologics experience',
+      whyTheyWantMe: 'Broad analytical expertise, tech transfer experience, multi-modality background',
       lastResearched: '2025-11-20'
     },
     connections: [
@@ -274,14 +274,14 @@ const SAMPLE_TARGET_COMPANIES = [
         name: 'Mike Johnson',
         title: 'Senior Director',
         linkedin: '',
-        mutualConnection: 'Direct - former colleague at CSL',
+        mutualConnection: 'Direct - former colleague',
         introRequested: false,
         introRequestDate: '',
         introStatus: 'Not Asked',
         notes: 'Strong referral connection'
       }
     ],
-    notes: 'Good RTP option, referral advantage',
+    notes: 'Good Indianapolis option, broad analytical focus, referral advantage',
     createdAt: '2025-11-08T10:00:00Z',
     updatedAt: '2025-11-20T10:00:00Z'
   }
@@ -362,18 +362,18 @@ Thank you,
 const SAMPLE_APPLICATIONS = [
   {
     id: uuidv4(),
-    company: 'Moderna',
+    company: 'Genentech',
     title: 'Associate Director, Analytical Development',
-    location: 'Cambridge, MA',
-    region: 'Boston/Cambridge',
-    requisitionId: 'REQ-2025-1234',
-    jobUrl: 'https://careers.modernatx.com/jobs/12345',
+    location: 'South San Francisco, CA',
+    region: 'SF Bay Area',
+    requisitionId: 'GNE-2025-1234',
+    jobUrl: 'https://careers.gene.com/jobs/12345',
     salary: '$180,000 - $220,000',
     companyType: 'Large Pharma',
-    modality: ['mRNA/LNP'],
+    modality: ['mAb/Biologics'],
     seniorityMatch: 5,
     dateApplied: '2025-12-01',
-    resumeVersion: 'v3-mRNA-focused',
+    resumeVersion: 'v2-broad-analytical',
     coverLetter: true,
     referral: 'Jane Smith (LinkedIn connection)',
     applicationSource: 'Company Website',
@@ -383,7 +383,7 @@ const SAMPLE_APPLICATIONS = [
       { status: 'Phone Screen', date: '2025-12-03', notes: 'HR screen scheduled for 12/8' }
     ],
     interviewNotes: '',
-    companyResearch: 'Leading mRNA vaccine manufacturer, strong pipeline in rare diseases',
+    companyResearch: 'Pioneer in protein therapeutics, strong oncology and immunology pipeline',
     keyContacts: [],
     lastContactDate: '2025-12-03',
     nextFollowUpDate: '2025-12-10',
@@ -397,18 +397,18 @@ const SAMPLE_APPLICATIONS = [
   },
   {
     id: uuidv4(),
-    company: 'BioNTech',
-    title: 'Senior Scientist, Analytical Development',
-    location: 'Cambridge, MA',
-    region: 'Boston/Cambridge',
-    requisitionId: 'BNT-AD-2025-089',
-    jobUrl: 'https://biontech.com/careers/89',
+    company: 'Merck',
+    title: 'Senior Scientist, Vaccine Analytical Development',
+    location: 'West Point, PA',
+    region: 'Other',
+    requisitionId: 'MRK-VAX-2025-089',
+    jobUrl: 'https://jobs.merck.com/us/en/job/89',
     salary: '$150,000 - $180,000',
-    companyType: 'Mid-size Biotech',
-    modality: ['mRNA/LNP', 'Vaccines'],
+    companyType: 'Large Pharma',
+    modality: ['Vaccines'],
     seniorityMatch: 4,
     dateApplied: '2025-11-28',
-    resumeVersion: 'v3-mRNA-focused',
+    resumeVersion: 'v2-broad-analytical',
     coverLetter: false,
     referral: '',
     applicationSource: 'LinkedIn',
@@ -417,7 +417,7 @@ const SAMPLE_APPLICATIONS = [
       { status: 'Applied', date: '2025-11-28', notes: 'Easy Apply on LinkedIn' }
     ],
     interviewNotes: '',
-    companyResearch: '',
+    companyResearch: 'Strong vaccines division, Gardasil and pneumococcal vaccines',
     keyContacts: [],
     lastContactDate: '2025-11-28',
     nextFollowUpDate: '2025-12-05',
@@ -433,8 +433,8 @@ const SAMPLE_APPLICATIONS = [
     id: uuidv4(),
     company: 'Eli Lilly',
     title: 'Principal Scientist, Analytical Sciences',
-    location: 'Research Triangle Park, NC',
-    region: 'RTP/Durham',
+    location: 'Indianapolis, IN',
+    region: 'Other',
     requisitionId: 'LLY-2025-78542',
     jobUrl: 'https://lilly.com/careers/78542',
     salary: '$160,000 - $200,000',
@@ -452,9 +452,9 @@ const SAMPLE_APPLICATIONS = [
       { status: 'Reviewed', date: '2025-11-30', notes: 'Recruiter reached out for availability' }
     ],
     interviewNotes: '',
-    companyResearch: 'Strong presence in RTP, expanding biologics manufacturing',
+    companyResearch: 'Headquartered in Indianapolis, strong analytical sciences group',
     keyContacts: [
-      { name: 'Mike Johnson', title: 'Senior Director', linkedin: '', notes: 'Former colleague from CSL' }
+      { name: 'Mike Johnson', title: 'Senior Director', linkedin: '', notes: 'Former colleague' }
     ],
     lastContactDate: '2025-11-30',
     nextFollowUpDate: '2025-12-07',
@@ -1169,7 +1169,7 @@ function JobEntryForm({ resumeVersions, onSubmit, onCancel, initialData = null, 
               value={formData.company}
               onChange={handleChange}
               className={inputClasses('company')}
-              placeholder="e.g., Moderna"
+              placeholder="e.g., Genentech"
             />
             {errors.company && <p className="text-red-500 text-xs mt-1">{errors.company}</p>}
           </div>
@@ -4538,7 +4538,7 @@ function CompanyFormModal({ company, onSubmit, onClose }) {
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g., Moderna"
+                placeholder="e.g., Genentech"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -5636,7 +5636,7 @@ function AddTouchModal({ onClose, onSave, targetCompanies, applications }) {
               value={formData.company}
               onChange={(e) => setFormData({...formData, company: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Moderna"
+              placeholder="Genentech"
               list="companies-list"
             />
             <datalist id="companies-list">
