@@ -2,233 +2,298 @@
 
 This guide walks you through setting up API keys for the AI features in Job Command Center. **All AI features are optional** - the app works fully without them.
 
-## Supported LLM Providers
+## Quick Recommendation
 
-| Provider | Cost | Best For |
-|----------|------|----------|
-| OpenAI | Pay-per-use (~$0.01-0.03/analysis) | Best quality, most reliable |
-| Anthropic (Claude) | Pay-per-use (~$0.01-0.02/analysis) | Excellent reasoning |
-| Google Gemini | **Free tier available** | Budget-conscious users |
-| Ollama | **Free (local)** | Privacy-focused, offline use |
+| Your Situation | Best Choice |
+|----------------|-------------|
+| Want to try AI features for free | **Google Gemini** (free tier) |
+| Want best quality analysis | **OpenAI GPT-4o** or **Anthropic Claude** |
+| Want 100% privacy / offline | **Ollama** (runs on your computer) |
+| On a tight budget | **Google Gemini** (free) or **Ollama** (free) |
 
 ---
 
-## OpenAI Setup
+## Option 1: Google Gemini (FREE - Recommended to Start)
 
-OpenAI provides GPT-4o and GPT-4o-mini models.
+Google Gemini has a generous free tier - perfect for job searching.
 
-### Steps:
+### Step-by-Step Setup:
 
-1. **Create an Account**
-   - Go to [platform.openai.com](https://platform.openai.com)
-   - Sign up or log in
+**1. Go to Google AI Studio**
+   - Open your browser
+   - Go to: **https://aistudio.google.com**
+   - Sign in with your Google account (Gmail)
 
-2. **Add Payment Method**
-   - Go to Settings > Billing
-   - Add a payment method (required even for small usage)
-   - Set a usage limit to control costs
+**2. Get Your API Key**
+   - Look at the left sidebar
+   - Click **"Get API key"**
+   - Click the blue **"Create API key"** button
+   - Select **"Create API key in new project"**
+   - Your API key will appear - it starts with `AIza...`
+   - Click the **copy icon** to copy it
 
-3. **Generate API Key**
-   - Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-   - Click "Create new secret key"
-   - Give it a name like "Job Command Center"
-   - Copy the key (you won't see it again!)
+**3. Add to Job Command Center**
+   - Open the Job Command Center app
+   - Go to the **"AI Match"** tab (or click Settings gear icon)
+   - Click **"Settings"** button (gear icon in AI Match section)
+   - Under "LLM Provider", select **"Google Gemini"**
+   - Under "Model", select **"gemini-1.5-flash"** (fastest, free-tier friendly)
+   - Paste your API key in the "API Key" field
+   - Click **"Save"**
 
-4. **Configure in App**
-   - Open Job Command Center
-   - Click Settings (gear icon) > AI Match tab
-   - Select "OpenAI" as provider
-   - Paste your API key
-   - Choose a model (gpt-4o-mini is cost-effective)
+**4. Test It**
+   - Upload your resume in the AI Match tab
+   - Try analyzing a job posting
+   - If it works, you're all set!
+
+### Free Tier Limits (Very Generous!)
+- ✅ 15 requests per minute
+- ✅ 1,500 requests per day
+- ✅ Completely free
+
+This is **more than enough** for even heavy job searching!
+
+---
+
+## Option 2: OpenAI (ChatGPT) - Best Quality
+
+OpenAI's GPT-4o provides the highest quality analysis.
+
+### Step-by-Step Setup:
+
+**1. Create an OpenAI Account**
+   - Go to: **https://platform.openai.com**
+   - Click **"Sign up"** (top right)
+   - Sign up with email, Google, or Microsoft account
+   - Verify your email if prompted
+
+**2. Add Payment Method (Required)**
+   - After logging in, click your profile icon (top right)
+   - Click **"Settings"**
+   - In the left sidebar, click **"Billing"**
+   - Click **"Add payment method"**
+   - Enter your credit card details
+   - **Set a usage limit** (recommended: $10/month to start)
+     - Under "Usage limits", set "Hard limit" to $10
+
+**3. Generate Your API Key**
+   - In the left sidebar, click **"API keys"**
+   - Or go directly to: **https://platform.openai.com/api-keys**
+   - Click the green **"+ Create new secret key"** button
+   - Give it a name: `Job Command Center`
+   - Click **"Create secret key"**
+   - **IMPORTANT**: Copy the key NOW - you won't see it again!
+   - The key starts with `sk-...`
+
+**4. Add to Job Command Center**
+   - Open the Job Command Center app
+   - Go to **"AI Match"** tab → click **Settings** (gear icon)
+   - Under "LLM Provider", select **"OpenAI"**
+   - Under "Model", select **"gpt-4o-mini"** (best value) or **"gpt-4o"** (best quality)
+   - Paste your API key in the "API Key" field
+   - Click **"Save"**
 
 ### Cost Estimate
-- GPT-4o-mini: ~$0.01 per job analysis
-- GPT-4o: ~$0.03 per job analysis
-- Monthly cost for active job search: $1-5
+| Model | Cost per Analysis | Monthly Estimate |
+|-------|-------------------|------------------|
+| gpt-4o-mini | ~$0.01 | $1-3/month |
+| gpt-4o | ~$0.03 | $3-10/month |
 
 ---
 
-## Anthropic (Claude) Setup
+## Option 3: Anthropic Claude - Excellent Reasoning
 
-Anthropic provides Claude models known for thoughtful, nuanced responses.
+Claude excels at nuanced analysis and thoughtful recommendations.
 
-### Steps:
+### Step-by-Step Setup:
 
-1. **Create an Account**
-   - Go to [console.anthropic.com](https://console.anthropic.com)
-   - Sign up with email
+**1. Create an Anthropic Account**
+   - Go to: **https://console.anthropic.com**
+   - Click **"Sign up"**
+   - Enter your email and create a password
+   - Verify your email (check inbox for verification link)
 
-2. **Add Credits**
-   - Go to Settings > Billing
-   - Add a payment method
-   - Purchase credits ($5 minimum)
+**2. Add Credits**
+   - After logging in, click **"Settings"** (bottom of left sidebar)
+   - Click **"Billing"**
+   - Click **"Add payment method"**
+   - Enter credit card details
+   - Click **"Add credits"** - minimum is $5
+   - Add $5 to start (this will last weeks of job searching)
 
-3. **Generate API Key**
-   - Go to [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
-   - Click "Create Key"
-   - Copy the key
+**3. Generate Your API Key**
+   - Click **"API Keys"** in the left sidebar
+   - Or go to: **https://console.anthropic.com/settings/keys**
+   - Click **"Create Key"**
+   - Give it a name: `Job Command Center`
+   - Click **"Create Key"**
+   - Copy the key - it starts with `sk-ant-...`
 
-4. **Configure in App**
-   - Open Job Command Center
-   - Click Settings > AI Match tab
-   - Select "Anthropic (Claude)" as provider
+**4. Add to Job Command Center**
+   - Open the Job Command Center app
+   - Go to **"AI Match"** tab → click **Settings** (gear icon)
+   - Under "LLM Provider", select **"Anthropic (Claude)"**
+   - Under "Model", select **"claude-sonnet-4-20250514"** (recommended)
    - Paste your API key
-   - Choose a model (claude-sonnet-4 recommended)
+   - Click **"Save"**
 
 ### Cost Estimate
-- Claude Sonnet 4: ~$0.015 per analysis
-- Claude 3.5 Sonnet: ~$0.01 per analysis
-- Monthly cost: $1-5
+| Model | Cost per Analysis | Monthly Estimate |
+|-------|-------------------|------------------|
+| Claude 3.5 Haiku | ~$0.005 | $0.50-2/month |
+| Claude Sonnet 4 | ~$0.015 | $1-5/month |
 
 ---
 
-## Google Gemini Setup (Free Tier Available!)
+## Option 4: Ollama (FREE - Runs Locally)
 
-Google Gemini offers a generous free tier - great for trying out AI features.
-
-### Steps:
-
-1. **Get API Key**
-   - Go to [aistudio.google.com](https://aistudio.google.com)
-   - Sign in with Google account
-   - Click "Get API Key" in the left sidebar
-   - Click "Create API Key"
-   - Choose "Create API key in new project"
-   - Copy the key
-
-2. **Configure in App**
-   - Open Job Command Center
-   - Click Settings > AI Match tab
-   - Select "Google Gemini" as provider
-   - Paste your API key
-   - Choose gemini-1.5-flash (free tier friendly)
-
-### Free Tier Limits
-- 15 requests per minute
-- 1,500 requests per day
-- 1 million tokens per minute
-
-This is more than enough for job searching!
-
-### Cost (Beyond Free Tier)
-- Gemini 1.5 Flash: ~$0.001 per analysis
-- Gemini 1.5 Pro: ~$0.007 per analysis
-
----
-
-## Ollama Setup (Free & Local)
-
-Ollama runs AI models locally on your computer. Completely free and private.
+Ollama runs AI models on your own computer. 100% free, 100% private.
 
 ### Requirements
-- 8GB+ RAM (16GB recommended)
-- 5-10GB disk space per model
+- Computer with 8GB+ RAM (16GB recommended)
+- 5-10GB free disk space
+- Works on Mac, Windows, or Linux
 
-### Steps:
+### Step-by-Step Setup:
 
-1. **Install Ollama**
+**1. Install Ollama**
 
-   **macOS:**
-   ```bash
-   brew install ollama
-   ```
+**On Mac:**
+```bash
+# If you have Homebrew:
+brew install ollama
 
-   **Linux:**
-   ```bash
-   curl -fsSL https://ollama.com/install.sh | sh
-   ```
+# Or download from: https://ollama.com/download
+```
 
-   **Windows:**
-   Download from [ollama.com/download](https://ollama.com/download)
+**On Windows:**
+- Go to: **https://ollama.com/download**
+- Click **"Download for Windows"**
+- Run the installer
+- Follow the installation prompts
 
-2. **Start Ollama**
-   ```bash
-   ollama serve
-   ```
-   (Keep this running in a terminal)
+**On Linux:**
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
 
-3. **Download a Model**
-   ```bash
-   # Recommended for job analysis
-   ollama pull llama3.1
+**2. Start Ollama**
+- **Mac/Linux**: Open Terminal and run: `ollama serve`
+- **Windows**: Ollama starts automatically, or find it in Start Menu
 
-   # Smaller/faster option
-   ollama pull phi3
+**3. Download a Model**
 
-   # Best quality (requires 16GB+ RAM)
-   ollama pull llama3.1:70b
-   ```
+Open a terminal/command prompt and run:
+```bash
+# Recommended - good balance of quality and speed
+ollama pull llama3.1
 
-4. **Configure in App**
-   - Open Job Command Center
-   - Click Settings > AI Match tab
-   - Select "Ollama (Local)" as provider
-   - No API key needed!
-   - Choose the model you downloaded
+# Alternative - smaller and faster
+ollama pull phi3
+```
+
+Wait for the download to complete (may take 5-10 minutes).
+
+**4. Add to Job Command Center**
+   - Make sure Ollama is running (`ollama serve`)
+   - Open the Job Command Center app
+   - Go to **"AI Match"** tab → click **Settings** (gear icon)
+   - Under "LLM Provider", select **"Ollama (Local)"**
+   - Under "Model", select the model you downloaded (e.g., `llama3.1`)
+   - **No API key needed!**
+   - Click **"Save"**
 
 ### Recommended Models
-| Model | RAM Needed | Quality | Speed |
-|-------|-----------|---------|-------|
-| phi3 | 4GB | Good | Fast |
-| llama3 | 8GB | Great | Medium |
-| llama3.1 | 8GB | Great | Medium |
-| mistral | 8GB | Great | Fast |
+| Model | RAM Needed | Quality | Speed | Download |
+|-------|-----------|---------|-------|----------|
+| phi3 | 4GB | Good | Fast | `ollama pull phi3` |
+| llama3.1 | 8GB | Great | Medium | `ollama pull llama3.1` |
+| mistral | 8GB | Great | Fast | `ollama pull mistral` |
 
-### Troubleshooting
-- Make sure `ollama serve` is running
-- Test connection: `curl http://localhost:11434/api/tags`
-- Check model is downloaded: `ollama list`
+### Troubleshooting Ollama
+- **"Connection refused"**: Make sure `ollama serve` is running
+- **Slow responses**: Close other apps to free up RAM
+- **Model not found**: Run `ollama list` to see installed models
 
 ---
 
-## Security Best Practices
+## How to Configure in the App
 
-1. **Never share your API keys** - Treat them like passwords
-2. **Set spending limits** - Most providers allow this
-3. **Use separate keys** - Create a key just for this app
-4. **Rotate keys periodically** - Generate new ones monthly
-5. **Monitor usage** - Check provider dashboards for unexpected activity
+Once you have your API key, here's how to add it:
+
+1. Open Job Command Center
+2. Click the **"AI Match"** tab at the top
+3. Click the **gear icon (⚙️)** to open API Settings
+4. Select your provider from the dropdown
+5. Select a model
+6. Paste your API key (not needed for Ollama)
+7. Click **"Save"**
+
+You'll see a green "AI Ready" badge in the header when configured correctly.
+
+---
+
+## Security Tips
+
+1. **Never share your API keys** - treat them like passwords
+2. **Set spending limits** - prevent surprise bills
+3. **Create dedicated keys** - use a separate key for this app
+4. **Monitor usage** - check your provider's dashboard weekly
 
 ---
 
 ## Troubleshooting
 
 ### "API Key Required" Error
-- Make sure you've entered the key in Settings > AI Match
-- Check for spaces before/after the key
-- Verify the key is for the correct provider
+- Make sure you entered the key in Settings → AI Match tab
+- Check for extra spaces before/after the key
+- Verify you selected the correct provider
 
-### "API Error" Messages
-- Check your internet connection
-- Verify the API key is valid (try in provider's playground)
-- Check if you have credits/quota remaining
+### "Unauthorized" or "Invalid Key" Error
+- Double-check you copied the entire key
+- Make sure the key is for the right provider
+- Try generating a new key
 
-### Slow Responses
+### "Insufficient Credits" Error
+- Add more credits in your provider's billing settings
+- Or switch to Google Gemini (free tier)
+
+### Responses are Slow
 - Try a faster model (gpt-4o-mini, gemini-1.5-flash, phi3)
-- For Ollama, ensure nothing else is using RAM
-- Check your internet speed for cloud providers
-
-### Ollama Not Connecting
-- Ensure `ollama serve` is running
-- Check port 11434 is not blocked
-- Try `ollama run llama3.1` to verify model works
+- Check your internet connection
+- For Ollama: close other apps to free RAM
 
 ---
 
 ## FAQ
 
 **Q: Do I need an API key to use the app?**
-A: No! All core features work without AI. API keys only enable AI analysis and coaching.
+A: No! All core tracking features work without AI. API keys only enable AI analysis.
 
-**Q: Which provider should I choose?**
-A: Start with Google Gemini (free) or Ollama (local/free). Upgrade to OpenAI or Anthropic for better quality.
+**Q: Which provider is best?**
+A: Start with **Google Gemini** (free). Upgrade to OpenAI or Claude if you want better quality.
 
-**Q: Is my data sent to AI providers?**
-A: Only when you click "Analyze" or use AI Coach. Your data is sent to process the request and is not stored by providers.
+**Q: How much will it cost?**
+A: Gemini and Ollama are free. OpenAI/Claude typically cost $1-5/month for active job searching.
 
-**Q: How much will this cost me?**
-A: With Gemini free tier or Ollama: $0. With OpenAI/Anthropic: typically $1-5/month for active job searching.
+**Q: Is my resume data safe?**
+A: Your data is only sent when you click "Analyze". It's processed and not stored by providers. For maximum privacy, use Ollama (runs locally).
+
+**Q: Can I switch providers later?**
+A: Yes! Just go back to Settings and change your provider anytime.
 
 ---
 
-Happy job hunting! The AI features are here to help, but the real magic is your consistent effort and strategic approach.
+## Quick Start Summary
+
+| Step | Action |
+|------|--------|
+| 1 | Pick a provider (start with Gemini - it's free) |
+| 2 | Create account and get API key |
+| 3 | Open app → AI Match tab → Settings (gear icon) |
+| 4 | Select provider, paste key, save |
+| 5 | Upload resume and start analyzing jobs! |
+
+---
+
+Good luck with your job search! 🎯
