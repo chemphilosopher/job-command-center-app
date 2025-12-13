@@ -26,8 +26,8 @@ export const PROVIDER_CONFIG = {
   },
   [LLM_PROVIDERS.GEMINI]: {
     name: 'Google Gemini',
-    models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
-    defaultModel: 'gemini-1.5-flash',
+    models: ['gemini-2.5-flash-preview-05-20', 'gemini-2.5-pro-preview-05-06', 'gemini-2.0-flash'],
+    defaultModel: 'gemini-2.5-flash-preview-05-20',
     requiresApiKey: true,
     apiKeyName: 'GEMINI_API_KEY'
   },

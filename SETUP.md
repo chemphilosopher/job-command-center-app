@@ -37,7 +37,7 @@ Google Gemini has a generous free tier - perfect for job searching.
    - Go to the **"AI Match"** tab (or click Settings gear icon)
    - Click **"Settings"** button (gear icon in AI Match section)
    - Under "LLM Provider", select **"Google Gemini"**
-   - Under "Model", select **"gemini-1.5-flash"** (fastest, free-tier friendly)
+   - Under "Model", select **"gemini-2.5-flash-preview-05-20"** (fastest, free-tier friendly)
    - Paste your API key in the "API Key" field
    - Click **"Save"**
 

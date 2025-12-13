@@ -123,12 +123,13 @@ const COMPANY_TYPE_OPTIONS = [
 ]
 
 const MODALITY_OPTIONS = [
-  'Protein Therapeutics',
-  'AAV Gene Therapy',
-  'Vaccines',
-  'mAb/Biologics',
   'Small Molecule',
-  'Cell Therapy'
+  'Protein Therapeutics',
+  'mAb/Biologics',
+  'Gene Therapy',
+  'Vaccines',
+  'Cell Therapy',
+  'Broad Analytical'
 ]
 
 const APPLICATION_SOURCE_OPTIONS = [
@@ -190,24 +191,24 @@ const SAMPLE_RESUME_VERSIONS = [
 // Sample Target Companies
 const SAMPLE_TARGET_COMPANIES = [
   {
-    id: 'tc-genentech',
-    name: 'Genentech',
+    id: 'tc-pfizer',
+    name: 'Pfizer',
     category: 'Large Pharma',
     priority: 1,
     status: 'Applied',
-    careersUrl: 'https://careers.gene.com',
+    careersUrl: 'https://www.pfizer.com/careers',
     research: {
-      overview: 'Pioneer in biotechnology and protein therapeutics. Part of Roche group. Leader in oncology, immunology, and ophthalmology biologics.',
+      overview: 'One of the world\'s largest pharmaceutical companies. Headquarters in New York. Strong presence in small molecules, biologics, and vaccines.',
       recentNews: [
-        { date: '2025-11-20', headline: 'Expanding South San Francisco campus', notes: 'Hiring across analytical development' }
+        { date: '2025-11-20', headline: 'Expanding analytical sciences division', notes: 'Hiring across multiple sites' }
       ],
       keyPeople: [
         { name: 'Dr. Sarah Chen', title: 'VP, Analytical Development', linkedin: '', notes: 'Background in protein characterization' }
       ],
-      painPoints: ['Scaling analytical methods for biosimilar defense', 'Next-gen protein therapeutics characterization'],
-      products: 'Herceptin, Avastin, Rituxan, Ocrevus, and extensive oncology/immunology pipeline',
-      culture: 'Scientific excellence, collaborative, innovation-focused',
-      whyTheyWantMe: 'Protein therapeutics expertise, method development experience, leadership capabilities',
+      painPoints: ['Scaling analytical methods across modalities', 'Supporting diverse pipeline from small molecule to gene therapy'],
+      products: 'Extensive portfolio including Ibrance, Eliquis, Prevnar, and oncology pipeline',
+      culture: 'Global scale, innovation-focused, strong scientific community',
+      whyTheyWantMe: 'Broad analytical expertise, method development experience, leadership capabilities',
       lastResearched: '2025-11-25'
     },
     connections: [
@@ -222,51 +223,51 @@ const SAMPLE_TARGET_COMPANIES = [
         notes: 'Intro made, scheduled coffee chat for Dec 5'
       }
     ],
-    notes: 'Top priority - strong protein therapeutics fit, excellent reputation',
+    notes: 'Top priority - world\'s largest pharma, diverse modalities',
     createdAt: '2025-11-01T10:00:00Z',
     updatedAt: '2025-11-25T14:00:00Z'
   },
   {
-    id: 'tc-merck',
-    name: 'Merck',
+    id: 'tc-jnj',
+    name: 'Johnson & Johnson',
     category: 'Large Pharma',
     priority: 2,
     status: 'Researching',
-    careersUrl: 'https://jobs.merck.com',
+    careersUrl: 'https://www.careers.jnj.com',
     research: {
-      overview: 'Global pharmaceutical leader with strong vaccines division. Headquarters in West Point, PA with extensive R&D operations.',
+      overview: 'Diversified healthcare giant. Janssen Pharmaceuticals division focuses on immunology, oncology, neuroscience, and infectious diseases.',
       recentNews: [],
       keyPeople: [],
-      painPoints: ['Vaccine production scale-up', 'Next-generation vaccine platforms'],
-      products: 'Keytruda (oncology), Gardasil (HPV vaccine), Pneumovax, extensive vaccine portfolio',
-      culture: 'Research-driven, patient-focused, strong scientific community',
-      whyTheyWantMe: 'Vaccine analytical experience, stability expertise',
+      painPoints: ['Gene therapy analytical development', 'Biologics characterization'],
+      products: 'Stelara, Darzalex, Tremfya, Erleada, and extensive oncology/immunology pipeline',
+      culture: 'Patient-focused, collaborative, strong R&D investment',
+      whyTheyWantMe: 'Gene therapy experience, protein therapeutics background',
       lastResearched: '2025-11-15'
     },
     connections: [],
-    notes: 'Strong vaccines focus - research West Point campus opportunities',
+    notes: 'Strong gene therapy and biologics focus - research Janssen opportunities',
     createdAt: '2025-11-05T10:00:00Z',
     updatedAt: '2025-11-15T10:00:00Z'
   },
   {
-    id: 'tc-lilly',
-    name: 'Eli Lilly',
+    id: 'tc-novartis',
+    name: 'Novartis',
     category: 'Large Pharma',
     priority: 2,
     status: 'Applied',
-    careersUrl: 'https://lilly.com/careers',
+    careersUrl: 'https://www.novartis.com/careers',
     research: {
-      overview: 'Major pharma headquartered in Indianapolis, IN. Strong presence in diabetes, oncology, immunology, and neuroscience.',
+      overview: 'Swiss multinational, one of the largest pharma companies globally. Strong in small molecules, biologics, gene therapy, and cell therapy.',
       recentNews: [
-        { date: '2025-11-10', headline: 'Expanding analytical capabilities in Indianapolis', notes: 'Multiple analytical roles posted' }
+        { date: '2025-11-10', headline: 'Expanding US analytical operations', notes: 'Multiple analytical roles posted' }
       ],
       keyPeople: [
         { name: 'John Martinez', title: 'Director, Analytical Sciences', linkedin: '', notes: '' }
       ],
-      painPoints: ['Broad analytical method development', 'Supporting diverse modality pipeline'],
-      products: 'Mounjaro, Trulicity (diabetes), Verzenio (oncology), diverse pipeline across modalities',
-      culture: 'Established, process-oriented, good work-life balance',
-      whyTheyWantMe: 'Broad analytical expertise, tech transfer experience, multi-modality background',
+      painPoints: ['Small molecule analytical innovation', 'Cell and gene therapy characterization'],
+      products: 'Entresto, Cosentyx, Kisqali, Zolgensma (gene therapy), Kymriah (cell therapy)',
+      culture: 'Global, science-driven, innovative',
+      whyTheyWantMe: 'Broad analytical expertise, small molecule and biologics experience',
       lastResearched: '2025-11-20'
     },
     connections: [
@@ -281,7 +282,7 @@ const SAMPLE_TARGET_COMPANIES = [
         notes: 'Strong referral connection'
       }
     ],
-    notes: 'Good Indianapolis option, broad analytical focus, referral advantage',
+    notes: 'Great for broad analytical - covers small molecule to gene therapy',
     createdAt: '2025-11-08T10:00:00Z',
     updatedAt: '2025-11-20T10:00:00Z'
   }
@@ -362,15 +363,15 @@ Thank you,
 const SAMPLE_APPLICATIONS = [
   {
     id: uuidv4(),
-    company: 'Genentech',
+    company: 'Pfizer',
     title: 'Associate Director, Analytical Development',
-    location: 'South San Francisco, CA',
-    region: 'SF Bay Area',
-    requisitionId: 'GNE-2025-1234',
-    jobUrl: 'https://careers.gene.com/jobs/12345',
+    location: 'New York, NY',
+    region: 'Other',
+    requisitionId: 'PFE-2025-1234',
+    jobUrl: 'https://www.pfizer.com/careers/jobs/12345',
     salary: '$180,000 - $220,000',
     companyType: 'Large Pharma',
-    modality: ['mAb/Biologics'],
+    modality: ['Small Molecule', 'Protein Therapeutics'],
     seniorityMatch: 5,
     dateApplied: '2025-12-01',
     resumeVersion: 'v2-broad-analytical',
@@ -383,7 +384,7 @@ const SAMPLE_APPLICATIONS = [
       { status: 'Phone Screen', date: '2025-12-03', notes: 'HR screen scheduled for 12/8' }
     ],
     interviewNotes: '',
-    companyResearch: 'Pioneer in protein therapeutics, strong oncology and immunology pipeline',
+    companyResearch: 'World\'s largest pharma, diverse pipeline across modalities',
     keyContacts: [],
     lastContactDate: '2025-12-03',
     nextFollowUpDate: '2025-12-10',
@@ -397,15 +398,15 @@ const SAMPLE_APPLICATIONS = [
   },
   {
     id: uuidv4(),
-    company: 'Merck',
-    title: 'Senior Scientist, Vaccine Analytical Development',
-    location: 'West Point, PA',
+    company: 'Johnson & Johnson',
+    title: 'Senior Scientist, Gene Therapy Analytical',
+    location: 'Spring House, PA',
     region: 'Other',
-    requisitionId: 'MRK-VAX-2025-089',
-    jobUrl: 'https://jobs.merck.com/us/en/job/89',
+    requisitionId: 'JNJ-GT-2025-089',
+    jobUrl: 'https://www.careers.jnj.com/jobs/89',
     salary: '$150,000 - $180,000',
     companyType: 'Large Pharma',
-    modality: ['Vaccines'],
+    modality: ['Gene Therapy'],
     seniorityMatch: 4,
     dateApplied: '2025-11-28',
     resumeVersion: 'v2-broad-analytical',
@@ -417,7 +418,7 @@ const SAMPLE_APPLICATIONS = [
       { status: 'Applied', date: '2025-11-28', notes: 'Easy Apply on LinkedIn' }
     ],
     interviewNotes: '',
-    companyResearch: 'Strong vaccines division, Gardasil and pneumococcal vaccines',
+    companyResearch: 'Janssen division, strong gene therapy and biologics focus',
     keyContacts: [],
     lastContactDate: '2025-11-28',
     nextFollowUpDate: '2025-12-05',
@@ -431,15 +432,15 @@ const SAMPLE_APPLICATIONS = [
   },
   {
     id: uuidv4(),
-    company: 'Eli Lilly',
+    company: 'Novartis',
     title: 'Principal Scientist, Analytical Sciences',
-    location: 'Indianapolis, IN',
-    region: 'Other',
-    requisitionId: 'LLY-2025-78542',
-    jobUrl: 'https://lilly.com/careers/78542',
+    location: 'Cambridge, MA',
+    region: 'Boston/Cambridge',
+    requisitionId: 'NVS-2025-78542',
+    jobUrl: 'https://www.novartis.com/careers/78542',
     salary: '$160,000 - $200,000',
     companyType: 'Large Pharma',
-    modality: ['mAb/Biologics', 'Small Molecule'],
+    modality: ['Small Molecule', 'Cell Therapy'],
     seniorityMatch: 4,
     dateApplied: '2025-11-25',
     resumeVersion: 'v2-broad-analytical',
@@ -452,7 +453,7 @@ const SAMPLE_APPLICATIONS = [
       { status: 'Reviewed', date: '2025-11-30', notes: 'Recruiter reached out for availability' }
     ],
     interviewNotes: '',
-    companyResearch: 'Headquartered in Indianapolis, strong analytical sciences group',
+    companyResearch: 'Swiss multinational, strong in cell and gene therapy',
     keyContacts: [
       { name: 'Mike Johnson', title: 'Senior Director', linkedin: '', notes: 'Former colleague' }
     ],
