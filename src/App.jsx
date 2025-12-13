@@ -3647,6 +3647,19 @@ function Dashboard({ applications, resumeVersions }) {
     new Date(a.statusHistory?.[a.statusHistory.length - 1]?.date) >= weekAgo
   ).length
 
+  // Phone screens count (current + completed)
+  const phoneScreens = applications.filter(a =>
+    a.status === 'Phone Screen' ||
+    a.statusHistory?.some(h => h.status === 'Phone Screen')
+  ).length
+
+  // Onsite/Final interviews count (current + completed)
+  const onsiteInterviews = applications.filter(a =>
+    a.status === 'Onsite' ||
+    a.status === 'Technical' ||
+    a.statusHistory?.some(h => h.status === 'Onsite' || h.status === 'Technical')
+  ).length
+
   // Status funnel data
   const statusOrder = ['Applied', 'Reviewed', 'Phone Screen', 'Technical', 'Onsite', 'Offer']
   const funnelData = statusOrder.map((status, idx) => {
@@ -3796,7 +3809,7 @@ function Dashboard({ applications, resumeVersions }) {
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Total Applications</p>
           <p className="text-2xl font-bold text-gray-900">{totalApps}</p>
@@ -3808,6 +3821,14 @@ function Dashboard({ applications, resumeVersions }) {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Active</p>
           <p className="text-2xl font-bold text-green-600">{activeApps}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">Phone Screens</p>
+          <p className="text-2xl font-bold text-amber-600">{phoneScreens}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">Onsite/Final</p>
+          <p className="text-2xl font-bold text-pink-600">{onsiteInterviews}</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Avg Days to Response</p>
