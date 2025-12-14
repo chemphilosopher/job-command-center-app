@@ -3,6 +3,7 @@
 export { default as Toast } from './Toast'
 export { default as Modal } from './Modal'
 export { default as WelcomeModal } from './WelcomeModal'
+export { default as APISetupGuide } from './APISetupGuide'
 export { default as AIStatusBadge } from './AIStatusBadge'
 export { default as BackupReminderBanner } from './BackupReminderBanner'
 export { default as TagSelector } from './TagSelector'

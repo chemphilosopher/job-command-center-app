@@ -47,6 +47,7 @@ import {
   Award
 } from 'lucide-react'
 import AIJobMatcher from './components/AIJobMatcher'
+import { APISetupGuide } from './components/ui'
 import {
   loadLLMSettings,
   callLLM,
@@ -790,7 +791,7 @@ function Modal({ isOpen, onClose, title, children }) {
 }
 
 // Welcome Modal for First-Time Users
-function WelcomeModal({ onClose, onOpenSettings }) {
+function WelcomeModal({ onClose, onOpenSettings, onOpenSetupGuide }) {
   const [step, setStep] = useState(1)
 
   return (
@@ -855,7 +856,7 @@ function WelcomeModal({ onClose, onOpenSettings }) {
 
             {step === 2 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900">AI Features (Optional)</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Enable AI Features (Optional)</h2>
                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-5">
                   <div className="flex items-start gap-4">
                     <div className="bg-purple-100 p-2 rounded-lg">
@@ -863,42 +864,57 @@ function WelcomeModal({ onClose, onOpenSettings }) {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-900">AI-Powered Analysis</h3>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Get AI assistance with job matching, resume analysis, and strategic coaching.
-                        <strong className="block mt-2 text-gray-900">This is completely optional!</strong>
-                      </p>
                       <p className="text-sm text-gray-600">
-                        The app works great without AI. You can add an API key later if you want these features.
+                        Get AI assistance with job matching, resume analysis, and interview prep.
+                        <strong className="block mt-2 text-purple-700">Free options available!</strong>
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">Free AI Options:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>- <strong>Google Gemini</strong>: Free tier available</li>
-                    <li>- <strong>Ollama</strong>: Run AI locally on your computer (free)</li>
-                  </ul>
-                </div>
-
-                <div className="flex gap-3">
+                {/* Two path options */}
+                <div className="grid gap-4">
                   <button
-                    onClick={() => setStep(3)}
-                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    onClick={() => {
+                      onClose()
+                      if (onOpenSetupGuide) onOpenSetupGuide()
+                    }}
+                    className="flex items-center gap-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-100 transition-all text-left group"
                   >
-                    Skip for Now
+                    <div className="bg-blue-100 p-3 rounded-lg group-hover:bg-blue-200">
+                      <FileText className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">I need to set up an API key</h3>
+                      <p className="text-sm text-gray-600">Step-by-step guide to get a free API key from Google, OpenAI, or others</p>
+                    </div>
+                    <span className="text-blue-600 font-medium">Guide →</span>
                   </button>
+
                   <button
                     onClick={() => {
                       onClose()
                       onOpenSettings()
                     }}
-                    className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                    className="flex items-center gap-4 p-4 bg-green-50 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-100 transition-all text-left group"
                   >
-                    Configure AI
+                    <div className="bg-green-100 p-3 rounded-lg group-hover:bg-green-200">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">I have an API key</h3>
+                      <p className="text-sm text-gray-600">Go straight to settings and enter your API key</p>
+                    </div>
+                    <span className="text-green-600 font-medium">Settings →</span>
                   </button>
                 </div>
+
+                <button
+                  onClick={() => setStep(3)}
+                  className="w-full py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                >
+                  Skip for now - I'll set this up later
+                </button>
               </div>
             )}
 
@@ -6207,6 +6223,7 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(() => {
     return !localStorage.getItem('pharma_job_tracker_welcomed')
   })
+  const [showAPISetupGuide, setShowAPISetupGuide] = useState(false)
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [dismissedBackupReminder, setDismissedBackupReminder] = useState(() => {
     const dismissed = localStorage.getItem('pharma_job_tracker_backup_dismissed')
@@ -7701,6 +7718,18 @@ function App() {
         <WelcomeModal
           onClose={handleWelcomeClose}
           onOpenSettings={() => setActiveTab('aiMatch')}
+          onOpenSetupGuide={() => setShowAPISetupGuide(true)}
+        />
+      )}
+
+      {/* API Setup Guide Modal */}
+      {showAPISetupGuide && (
+        <APISetupGuide
+          onClose={() => setShowAPISetupGuide(false)}
+          onOpenSettings={() => {
+            setShowAPISetupGuide(false)
+            setActiveTab('aiMatch')
+          }}
         />
       )}
     </div>
