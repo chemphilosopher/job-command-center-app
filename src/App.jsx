@@ -47,7 +47,10 @@ import {
   Phone,
   Coffee,
   Users,
-  Award
+  Award,
+  HelpCircle,
+  Key,
+  Globe
 } from 'lucide-react'
 // AIJobMatcher is lazy loaded above as LazyAIJobMatcher
 import { APISetupGuide } from './components/ui'
@@ -983,6 +986,53 @@ function AIStatusBadge({ llmSettings }) {
       <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
       No AI
     </span>
+  )
+}
+
+// AI Setup Prompt Banner Component
+function AISetupBanner({ onSetupGuide, onSettings, onDismiss }) {
+  return (
+    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/20 p-3 rounded-xl">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Unlock AI-Powered Job Matching</h3>
+              <p className="text-indigo-100 text-sm">
+                Set up an AI provider to analyze job fits, research companies, and get personalized coaching.
+                <span className="font-medium text-white ml-1">Google Gemini is FREE!</span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onSetupGuide}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition-colors shadow-lg"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Setup Guide
+            </button>
+            <button
+              onClick={onSettings}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-500/30 text-white font-medium rounded-lg hover:bg-indigo-500/50 transition-colors"
+            >
+              <Key className="w-4 h-4" />
+              I Have a Key
+            </button>
+            <button
+              onClick={onDismiss}
+              className="p-2 text-indigo-200 hover:text-white hover:bg-indigo-500/30 rounded-lg transition-colors"
+              title="Dismiss for now"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -2148,6 +2198,97 @@ function ApplicationDetailModal({ application, resumeVersions, onClose, onSave, 
   const [showPrepSummary, setShowPrepSummary] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
+  const [isResearchingCompany, setIsResearchingCompany] = useState(false)
+  const [researchError, setResearchError] = useState(null)
+
+  // AI Company Research function
+  const handleAICompanyResearch = async () => {
+    if (!llmSettings) {
+      setResearchError('Please configure an AI provider in Settings first')
+      return
+    }
+
+    const apiKey = llmSettings.apiKeys?.[
+      llmSettings.provider === 'openai' ? 'OPENAI_API_KEY' :
+      llmSettings.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' :
+      llmSettings.provider === 'gemini' ? 'GEMINI_API_KEY' : null
+    ]
+
+    if (!apiKey && llmSettings.provider !== 'ollama') {
+      setResearchError('Please configure your API key in Settings first')
+      return
+    }
+
+    setIsResearchingCompany(true)
+    setResearchError(null)
+
+    try {
+      const prompt = [
+        {
+          role: 'system',
+          content: `You are an expert pharmaceutical/biotech industry analyst helping job seekers research companies.
+Provide comprehensive but concise company research that would help someone prepare for an interview.
+
+Return a JSON object with this EXACT structure:
+{
+  "companyOverview": "2-3 paragraph overview of the company, mission, size, history",
+  "recentNews": "Recent news, FDA approvals, partnerships, funding rounds from the last 6-12 months",
+  "pipelineProducts": "Key products, pipeline candidates, therapeutic areas, development stages",
+  "cultureNotes": "Culture, work environment, employee reviews insights, values",
+  "potentialConcerns": "Questions to explore, potential challenges, things to clarify in interview"
+}
+
+Focus on factual, useful information. If the company is not in pharma/biotech, still provide relevant industry-specific research.`
+        },
+        {
+          role: 'user',
+          content: `Please research this company for my job application:
+
+Company: ${formData.company}
+Job Title: ${formData.title}
+Location: ${formData.location || 'Not specified'}
+
+${formData.jobDescription ? `Job Description:\n${formData.jobDescription}` : ''}
+
+Provide comprehensive research to help me prepare for this role.`
+        }
+      ]
+
+      const response = await callLLM(llmSettings, prompt)
+
+      // Parse the JSON response
+      let research
+      try {
+        // Extract JSON from response (handle markdown code blocks)
+        const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response]
+        research = JSON.parse(jsonMatch[1].trim())
+      } catch {
+        // If JSON parsing fails, use the raw response for overview
+        research = {
+          companyOverview: response,
+          recentNews: '',
+          pipelineProducts: '',
+          cultureNotes: '',
+          potentialConcerns: ''
+        }
+      }
+
+      // Update form data with research results
+      setFormData(prev => ({
+        ...prev,
+        companyResearch: research.companyOverview || prev.companyResearch,
+        recentNews: research.recentNews || prev.recentNews,
+        pipelineProducts: research.pipelineProducts || prev.pipelineProducts,
+        cultureNotes: research.cultureNotes || prev.cultureNotes,
+        potentialConcerns: research.potentialConcerns || prev.potentialConcerns
+      }))
+    } catch (error) {
+      console.error('AI Research error:', error)
+      setResearchError(error.message || 'Failed to research company')
+    } finally {
+      setIsResearchingCompany(false)
+    }
+  }
 
   if (!application) return null
 
@@ -2870,6 +3011,54 @@ function ApplicationDetailModal({ application, resumeVersions, onClose, onSave, 
             {/* Company Research Tab */}
             {activeTab === 'research' && (
               <div className="space-y-6">
+                {/* AI Research Button */}
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-indigo-100 p-2 rounded-lg">
+                        <Globe className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">AI Company Research</h4>
+                        <p className="text-sm text-gray-600">
+                          Auto-fill research fields using AI based on company name and job description
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleAICompanyResearch}
+                      disabled={isResearchingCompany || !formData.company}
+                      className={`inline-flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors ${
+                        isResearchingCompany || !formData.company
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                    >
+                      {isResearchingCompany ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Researching...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Research with AI
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  {researchError && (
+                    <div className="mt-3 text-sm text-red-600 bg-red-50 p-2 rounded">
+                      {researchError}
+                    </div>
+                  )}
+                  {!formData.company && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      Enter a company name in the Details tab first
+                    </p>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Company Overview</label>
                   <textarea
@@ -5586,6 +5775,13 @@ function App() {
     return !localStorage.getItem('pharma_job_tracker_welcomed')
   })
   const [showAPISetupGuide, setShowAPISetupGuide] = useState(false)
+  const [dismissedAIBanner, setDismissedAIBanner] = useState(() => {
+    const dismissed = localStorage.getItem('pharma_job_tracker_ai_banner_dismissed')
+    if (!dismissed) return false
+    // Only dismiss for 7 days
+    const dismissedTime = new Date(dismissed).getTime()
+    return (Date.now() - dismissedTime) < 7 * 24 * 60 * 60 * 1000
+  })
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [dismissedBackupReminder, setDismissedBackupReminder] = useState(() => {
     const dismissed = localStorage.getItem('pharma_job_tracker_backup_dismissed')
@@ -5628,6 +5824,22 @@ function App() {
     setDismissedBackupReminder(true)
     setShowBackupReminder(false)
   }
+
+  // Handle AI banner dismiss (temporary - comes back after 7 days)
+  const handleDismissAIBanner = () => {
+    localStorage.setItem('pharma_job_tracker_ai_banner_dismissed', new Date().toISOString())
+    setDismissedAIBanner(true)
+  }
+
+  // Check if AI is configured
+  const isAIConfigured = (() => {
+    const apiKey = llmSettings?.apiKeys?.[
+      llmSettings?.provider === 'openai' ? 'OPENAI_API_KEY' :
+      llmSettings?.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' :
+      llmSettings?.provider === 'gemini' ? 'GEMINI_API_KEY' : null
+    ]
+    return apiKey || llmSettings?.provider === 'ollama'
+  })()
 
   // Handle successful backup
   const handleBackupComplete = () => {
@@ -6468,6 +6680,15 @@ function App() {
           onBackup={handleExport}
           onDismiss={handleDismissBackupReminder}
           applicationCount={applications.length}
+        />
+      )}
+
+      {/* AI Setup Banner - Show when AI not configured and not dismissed */}
+      {!isAIConfigured && !dismissedAIBanner && (
+        <AISetupBanner
+          onSetupGuide={() => setShowAPISetupGuide(true)}
+          onSettings={() => setIsSettingsOpen(true)}
+          onDismiss={handleDismissAIBanner}
         />
       )}
 
