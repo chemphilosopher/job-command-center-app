@@ -56,6 +56,7 @@ import {
 import { APISetupGuide } from './components/ui'
 import {
   loadLLMSettings,
+  saveLLMSettings,
   callLLM,
   createQualificationChecklistPrompt,
   createCoachingPrompt,
@@ -3888,10 +3889,11 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
 const TAG_OPTIONS = ['Dream Job', 'High Priority', 'Backup', 'Referral', 'Remote OK', 'Top Choice', 'Follow Up']
 
 // Settings Component
-function SettingsPanel({ applications, resumeVersions, onClearData, onClose, onExport, onImport }) {
+function SettingsPanel({ applications, resumeVersions, onClearData, onClose, onExport, onImport, llmSettings, onLlmSettingsChange, onOpenSetupGuide }) {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [lastBackup, setLastBackup] = useState(() => localStorage.getItem('pharma_job_tracker_last_backup'))
   const [mountTime] = useState(() => Date.now()) // Capture time once on mount
+  const [showApiKey, setShowApiKey] = useState(false)
 
   // Calculate storage used
   const storageUsed = () => {
@@ -3960,18 +3962,110 @@ function SettingsPanel({ applications, resumeVersions, onClearData, onClose, onE
               </div>
             </div>
 
-            {/* AI Features Info */}
+            {/* AI Provider Configuration */}
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-purple-600" />
-                AI Features
+                AI Provider
               </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                AI features are <strong>optional</strong>. Configure in the AI Match tab for job analysis and coaching.
+              <p className="text-sm text-gray-600 mb-3">
+                AI features are <strong>optional</strong>. Choose a provider below.
+                <span className="text-purple-600 font-medium ml-1">Google Gemini is FREE!</span>
               </p>
-              <p className="text-xs text-gray-500">
-                Free options: Google Gemini (free tier) or Ollama (run locally)
-              </p>
+
+              {/* Provider Selection */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                <select
+                  value={llmSettings?.provider || 'openai'}
+                  onChange={(e) => {
+                    const provider = e.target.value
+                    const defaultModels = {
+                      openai: 'gpt-4o-mini',
+                      anthropic: 'claude-sonnet-4-20250514',
+                      gemini: 'gemini-2.5-flash-preview-05-20',
+                      ollama: 'llama3.1'
+                    }
+                    onLlmSettingsChange({
+                      ...llmSettings,
+                      provider,
+                      model: defaultModels[provider] || llmSettings?.model
+                    })
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="openai">OpenAI (GPT-4)</option>
+                  <option value="anthropic">Anthropic (Claude)</option>
+                  <option value="gemini">Google Gemini (FREE tier available)</option>
+                  <option value="ollama">Ollama (Local - Free)</option>
+                </select>
+              </div>
+
+              {/* API Key Input */}
+              {llmSettings?.provider !== 'ollama' && (
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {llmSettings?.provider === 'openai' ? 'OpenAI' :
+                     llmSettings?.provider === 'anthropic' ? 'Anthropic' : 'Gemini'} API Key
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={llmSettings?.apiKeys?.[
+                        llmSettings?.provider === 'openai' ? 'OPENAI_API_KEY' :
+                        llmSettings?.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'
+                      ] || ''}
+                      onChange={(e) => {
+                        const keyName = llmSettings?.provider === 'openai' ? 'OPENAI_API_KEY' :
+                                       llmSettings?.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'
+                        onLlmSettingsChange({
+                          ...llmSettings,
+                          apiKeys: {
+                            ...llmSettings?.apiKeys,
+                            [keyName]: e.target.value
+                          }
+                        })
+                      }}
+                      placeholder={`Enter your ${llmSettings?.provider === 'openai' ? 'OpenAI' :
+                                   llmSettings?.provider === 'anthropic' ? 'Anthropic' : 'Gemini'} API key`}
+                      className="w-full px-3 py-2 pr-20 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      {showApiKey ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  {/* Show configured status */}
+                  {llmSettings?.apiKeys?.[
+                    llmSettings?.provider === 'openai' ? 'OPENAI_API_KEY' :
+                    llmSettings?.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'
+                  ] && (
+                    <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      API key configured
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Ollama Info */}
+              {llmSettings?.provider === 'ollama' && (
+                <p className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                  Ollama runs locally - no API key needed. Make sure Ollama is running at localhost:11434
+                </p>
+              )}
+
+              {/* Setup Guide Link */}
+              <button
+                onClick={onOpenSetupGuide}
+                className="mt-2 text-sm text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Need help getting an API key?
+              </button>
             </div>
 
             {/* Keyboard Shortcuts */}
@@ -7297,6 +7391,15 @@ function App() {
           onClose={() => setIsSettingsOpen(false)}
           onExport={handleExport}
           onImport={handleImportClick}
+          llmSettings={llmSettings}
+          onLlmSettingsChange={(newSettings) => {
+            setLlmSettings(newSettings)
+            saveLLMSettings(newSettings)
+          }}
+          onOpenSetupGuide={() => {
+            setIsSettingsOpen(false)
+            setShowAPISetupGuide(true)
+          }}
         />
       )}
 
