@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { jsPDF } from 'jspdf'
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
+import { saveAs } from 'file-saver'
 import {
   Download,
   Upload,
@@ -176,7 +179,37 @@ const SAMPLE_RESUME_VERSIONS = [
     description: 'Emphasizes AAV characterization, viral vector analytics, and gene therapy product development',
     createdDate: '2025-11-15',
     targetRoles: 'Senior roles at gene therapy companies',
-    keyHighlights: ['AAV characterization', 'Viral vector analytics', 'Potency assay development']
+    keyHighlights: ['AAV characterization', 'Viral vector analytics', 'Potency assay development'],
+    content: `SAMPLE CANDIDATE
+Senior Analytical Scientist | Gene Therapy Specialist
+Email: sample@example.com | LinkedIn: linkedin.com/in/sample
+
+PROFESSIONAL SUMMARY
+Experienced analytical scientist with 8+ years in pharmaceutical development, specializing in gene therapy product characterization. Expert in AAV vector analytics, potency assay development, and regulatory compliance for advanced therapeutics.
+
+EXPERIENCE
+
+Senior Analytical Scientist | BioTech Company (2020-Present)
+- Led development of AAV capsid characterization methods including SEC-MALS, AUC, and cryo-EM
+- Established viral vector potency assays for 3 gene therapy programs
+- Managed cross-functional team of 5 scientists supporting Phase 1-3 clinical programs
+- Authored analytical sections for IND and BLA submissions
+
+Analytical Scientist II | Pharmaceutical Corp (2016-2020)
+- Developed and validated HPLC and mass spectrometry methods for protein therapeutics
+- Supported technology transfer for commercial manufacturing
+- Implemented statistical process control for release testing
+
+EDUCATION
+Ph.D. in Analytical Chemistry | University Name (2016)
+B.S. in Chemistry | University Name (2011)
+
+TECHNICAL SKILLS
+- Instrumentation: HPLC, SEC-MALS, AUC, Mass Spectrometry, qPCR, ddPCR
+- Software: Empower, UNICORN, GraphPad Prism, JMP
+- Regulatory: ICH Q2/Q14, cGMP, GLP compliance
+
+(This is sample content - replace with your actual resume)`
   },
   {
     id: 'v2-broad-analytical',
@@ -184,7 +217,38 @@ const SAMPLE_RESUME_VERSIONS = [
     description: 'General analytical development focus, balanced across modalities',
     createdDate: '2025-10-01',
     targetRoles: 'General analytical development positions',
-    keyHighlights: ['Method development', 'Validation expertise', 'Cross-functional leadership']
+    keyHighlights: ['Method development', 'Validation expertise', 'Cross-functional leadership'],
+    content: `SAMPLE CANDIDATE
+Senior Analytical Scientist
+Email: sample@example.com | Phone: (555) 123-4567
+
+PROFESSIONAL SUMMARY
+Versatile analytical development professional with expertise spanning small molecules, biologics, and complex drug products. Proven track record in method development, validation, and regulatory submissions.
+
+CORE COMPETENCIES
+- Method Development & Validation (ICH Q2/Q14)
+- Cross-functional Team Leadership
+- Regulatory Submission Support (IND/NDA/BLA)
+- Technology Transfer & Scale-up
+- Statistical Analysis & DOE
+
+EXPERIENCE
+
+Principal Scientist, Analytical Development | Pharma Company (2018-Present)
+- Lead analytical support for 5+ drug development programs across multiple modalities
+- Manage team of 8 analytical scientists
+- Drive continuous improvement initiatives resulting in 30% efficiency gains
+
+Senior Scientist | Contract Research Org (2014-2018)
+- Developed analytical methods for 20+ client programs
+- Specialized in stability-indicating method development
+- Supported FDA inspection preparation
+
+EDUCATION
+M.S. in Chemistry | University Name
+B.S. in Biochemistry | University Name
+
+(This is sample content - replace with your actual resume)`
   }
 ]
 
@@ -1537,6 +1601,7 @@ const PIPELINE_STATUSES = ['Applied', 'Reviewed', 'Phone Screen', 'Technical', '
 // Status Update Modal Component
 function StatusUpdateModal({ application, onClose, onUpdate }) {
   const [newStatus, setNewStatus] = useState(application?.status || '')
+  const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [rejection, setRejection] = useState({
     stage: application?.rejection?.stage || '',
@@ -1552,7 +1617,7 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
     e.preventDefault()
     if (newStatus && newStatus !== application.status) {
       const rejectionData = newStatus === 'Rejected' ? rejection : null
-      onUpdate(application.id, newStatus, notes, rejectionData)
+      onUpdate(application.id, newStatus, notes, rejectionData, statusDate)
     }
     onClose()
   }
@@ -1603,6 +1668,23 @@ function StatusUpdateModal({ application, onClose, onUpdate }) {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Status Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date of Status Change
+              </label>
+              <input
+                type="date"
+                value={statusDate}
+                onChange={(e) => setStatusDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                When did this status change occur?
+              </p>
             </div>
 
             {/* Rejection Details - only shown when Rejected is selected */}
@@ -3030,6 +3112,116 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
     return { timesUsed: usedApps.length, responseRate, bestRegion }
   }
 
+  // Download resume as PDF
+  const downloadAsPDF = (version) => {
+    if (!version.content) {
+      alert('No resume content to download. Please add content first.')
+      return
+    }
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 20
+    const maxWidth = pageWidth - margin * 2
+    const lineHeight = 6
+
+    // Add title
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text(version.name, margin, 20)
+
+    // Add metadata
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(128)
+    doc.text(`Target Roles: ${version.targetRoles || 'N/A'}`, margin, 28)
+    doc.text(`Created: ${version.createdDate}`, margin, 34)
+    doc.setTextColor(0)
+
+    // Add separator line
+    doc.setDrawColor(200)
+    doc.line(margin, 38, pageWidth - margin, 38)
+
+    // Add content
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(version.content, maxWidth)
+    let y = 45
+
+    lines.forEach(line => {
+      if (y > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage()
+        y = 20
+      }
+      doc.text(line, margin, y)
+      y += lineHeight
+    })
+
+    const fileName = `${version.name.replace(/\s+/g, '_')}_resume.pdf`
+    doc.save(fileName)
+  }
+
+  // Download resume as Word document
+  const downloadAsWord = async (version) => {
+    if (!version.content) {
+      alert('No resume content to download. Please add content first.')
+      return
+    }
+
+    // Split content into paragraphs
+    const paragraphs = version.content.split('\n').filter(p => p.trim())
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          // Title
+          new Paragraph({
+            children: [new TextRun({ text: version.name, bold: true, size: 32 })],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 }
+          }),
+          // Metadata
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Target Roles: ${version.targetRoles || 'N/A'}`, italics: true, size: 20, color: '666666' })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Created: ${version.createdDate}`, italics: true, size: 20, color: '666666' })
+            ],
+            spacing: { after: 400 }
+          }),
+          // Content paragraphs
+          ...paragraphs.map(text => new Paragraph({
+            children: [new TextRun({ text, size: 22 })],
+            spacing: { after: 200 }
+          }))
+        ]
+      }]
+    })
+
+    const blob = await Packer.toBlob(doc)
+    const fileName = `${version.name.replace(/\s+/g, '_')}_resume.docx`
+    saveAs(blob, fileName)
+  }
+
+  // Download resume as plain text
+  const downloadAsText = (version) => {
+    if (!version.content) {
+      alert('No resume content to download. Please add content first.')
+      return
+    }
+
+    const header = `${version.name}\nTarget Roles: ${version.targetRoles || 'N/A'}\nCreated: ${version.createdDate}\n${'='.repeat(50)}\n\n`
+    const content = header + version.content
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const fileName = `${version.name.replace(/\s+/g, '_')}_resume.txt`
+    saveAs(blob, fileName)
+  }
+
   const ResumeVersionModal = ({ version, onClose, onSave }) => {
     const [formData, setFormData] = useState({
       id: version?.id || '',
@@ -3037,14 +3229,79 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
       description: version?.description || '',
       createdDate: version?.createdDate || new Date().toISOString().split('T')[0],
       targetRoles: version?.targetRoles || '',
-      keyHighlights: version?.keyHighlights?.join('\n') || ''
+      keyHighlights: version?.keyHighlights?.join('\n') || '',
+      content: version?.content || '',
+      fileName: version?.fileName || '',
+      fileType: version?.fileType || ''
     })
     const [errors, setErrors] = useState({})
+    const fileInputRef = useRef(null)
 
     const handleChange = (e) => {
       const { name, value } = e.target
       setFormData(prev => ({ ...prev, [name]: value }))
       if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }))
+    }
+
+    const handleFileUpload = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      const fileName = file.name
+      const fileType = file.type || fileName.split('.').pop()
+
+      // Read file content
+      const reader = new FileReader()
+      reader.onload = async (event) => {
+        let content = ''
+
+        if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
+          // For PDF files, we'll extract text using pdf.js (already available in the app)
+          try {
+            const pdfjsLib = await import('pdfjs-dist')
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+            const pdf = await pdfjsLib.getDocument({ data: event.target.result }).promise
+            let text = ''
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i)
+              const textContent = await page.getTextContent()
+              text += textContent.items.map(item => item.str).join(' ') + '\n\n'
+            }
+            content = text.trim()
+          } catch (err) {
+            console.error('Error parsing PDF:', err)
+            content = '[PDF content - could not extract text]'
+          }
+        } else if (fileType.includes('word') || fileName.endsWith('.docx')) {
+          // For Word files, use mammoth (already available)
+          try {
+            const mammoth = await import('mammoth')
+            const result = await mammoth.extractRawText({ arrayBuffer: event.target.result })
+            content = result.value
+          } catch (err) {
+            console.error('Error parsing DOCX:', err)
+            content = '[Word document content - could not extract text]'
+          }
+        } else {
+          // Plain text
+          content = event.target.result
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          content: content || prev.content,
+          fileName,
+          fileType
+        }))
+      }
+
+      if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
+        reader.readAsArrayBuffer(file)
+      } else if (fileType.includes('word') || fileName.endsWith('.docx')) {
+        reader.readAsArrayBuffer(file)
+      } else {
+        reader.readAsText(file)
+      }
     }
 
     const handleSubmit = (e) => {
@@ -3070,13 +3327,13 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="flex min-h-screen items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-          <div className="relative bg-white rounded-xl shadow-2xl max-w-lg w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
               <h2 className="text-xl font-semibold text-gray-900">
                 {version ? 'Edit Resume Version' : 'Add Resume Version'}
               </h2>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-grow">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Version Name <span className="text-red-500">*</span>
@@ -3137,6 +3394,58 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
                   className={inputClasses}
                   placeholder="Method development expertise&#10;Protein characterization&#10;Tech transfer experience"
                 />
+              </div>
+
+              {/* File Upload Section */}
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Resume File
+                  <span className="text-gray-400 font-normal ml-2">(Upload PDF, Word, or TXT)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".pdf,.docx,.doc,.txt"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload File
+                  </button>
+                  {formData.fileName && (
+                    <span className="text-sm text-gray-600 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-indigo-500" />
+                      {formData.fileName}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Resume Content */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Resume Content
+                  <span className="text-gray-400 font-normal ml-2">(Editable text - paste or edit here)</span>
+                </label>
+                <textarea
+                  name="content"
+                  value={formData.content}
+                  onChange={handleChange}
+                  rows={10}
+                  className={`${inputClasses} font-mono text-xs`}
+                  placeholder="Paste your resume text here, or upload a file above to auto-populate..."
+                />
+                {formData.content && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {formData.content.length.toLocaleString()} characters
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
@@ -3247,13 +3556,46 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
                   )}
                 </td>
                 <td className="px-4 py-4">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
                     <button
                       onClick={() => setEditingVersion(version)}
                       className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                     >
                       Edit
                     </button>
+                    {version.content && (
+                      <div className="relative group">
+                        <button
+                          className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 text-sm font-medium"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </button>
+                        <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                          <button
+                            onClick={() => downloadAsPDF(version)}
+                            className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 first:rounded-t-lg"
+                          >
+                            PDF
+                          </button>
+                          <button
+                            onClick={() => downloadAsWord(version)}
+                            className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Word (.docx)
+                          </button>
+                          <button
+                            onClick={() => downloadAsText(version)}
+                            className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 last:rounded-b-lg"
+                          >
+                            Text (.txt)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!version.content && (
+                      <span className="text-xs text-gray-400">No content</span>
+                    )}
                     {version.stats.timesUsed === 0 && (
                       <button
                         onClick={() => {
@@ -6410,18 +6752,18 @@ function App() {
     setEditingApplication(app)
   }
 
-  const handleStatusUpdate = (appId, newStatus, notes, rejectionData = null) => {
+  const handleStatusUpdate = (appId, newStatus, notes, rejectionData = null, customDate = null) => {
     setApplications(prev => prev.map(app => {
       if (app.id === appId) {
-        const now = new Date().toISOString().split('T')[0]
+        const statusDate = customDate || new Date().toISOString().split('T')[0]
         const updatedApp = {
           ...app,
           status: newStatus,
           statusHistory: [
             ...(app.statusHistory || []),
-            { status: newStatus, date: now, notes: notes || '' }
+            { status: newStatus, date: statusDate, notes: notes || '' }
           ],
-          lastContactDate: now,
+          lastContactDate: statusDate,
           updatedAt: new Date().toISOString()
         }
         // Save rejection data if status is Rejected
@@ -6434,7 +6776,7 @@ function App() {
             actionItems: rejectionData.actionItems || []
           }
           updatedApp.outcome = 'Rejected'
-          updatedApp.outcomeDate = now
+          updatedApp.outcomeDate = statusDate
         }
         return updatedApp
       }

@@ -31,7 +31,12 @@ import {
   ArrowRight,
   Lightbulb,
   BookOpen,
-  MessageSquare
+  MessageSquare,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Check
 } from 'lucide-react'
 
 import {
@@ -65,6 +70,417 @@ import {
   getResearchStats,
   loadResearchHistory
 } from '../services/deepResearch'
+
+// Setup Guide Data
+const SETUP_GUIDES = {
+  gemini: {
+    name: 'Google Gemini',
+    icon: '🔮',
+    tagline: 'FREE - Best for getting started',
+    cost: 'Free',
+    steps: [
+      {
+        title: 'Go to Google AI Studio',
+        content: 'Open your browser and go to:',
+        link: 'https://aistudio.google.com',
+        linkText: 'aistudio.google.com',
+        detail: 'Sign in with your Google/Gmail account'
+      },
+      {
+        title: 'Click "Get API Key"',
+        content: 'In the left sidebar, find and click "Get API key"',
+        visual: `┌──────────────────┐
+│ ☰ AI Studio      │
+├──────────────────┤
+│ + Create         │
+│ 📁 My Projects   │
+│ 🔑 Get API key  │ ← Click
+└──────────────────┘`
+      },
+      {
+        title: 'Create API Key',
+        content: 'Click the blue "Create API key" button, then select "Create API key in new project"',
+        detail: 'Your key will appear - it starts with "AIza..."'
+      },
+      {
+        title: 'Copy Your Key',
+        content: 'Click the copy icon next to your key to copy it',
+        detail: 'You can always come back to this page to see your key again'
+      },
+      {
+        title: 'Paste in App',
+        content: 'Go to API Settings in this app, select "Google Gemini", and paste your key',
+        detail: 'Select model "gemini-2.5-flash-preview-05-20" for best free tier performance'
+      }
+    ]
+  },
+  openai: {
+    name: 'OpenAI (ChatGPT)',
+    icon: '🤖',
+    tagline: 'High quality - Requires payment',
+    cost: '$1-5/month',
+    steps: [
+      {
+        title: 'Go to OpenAI Platform',
+        content: 'Open your browser and go to:',
+        link: 'https://platform.openai.com',
+        linkText: 'platform.openai.com',
+        detail: 'Note: This is different from chat.openai.com'
+      },
+      {
+        title: 'Create Account',
+        content: 'Click "Sign up" in the top right corner',
+        detail: 'You can sign up with email, Google, or Microsoft'
+      },
+      {
+        title: 'Add Payment Method',
+        content: 'Go to Settings → Billing → Add payment method',
+        visual: `┌──────────────────┐
+│ Settings         │
+├──────────────────┤
+│ Profile          │
+│ Billing         │ ← Click
+│ Limits           │
+│ API keys         │
+└──────────────────┘`,
+        detail: 'Set a monthly limit of $10 to avoid surprise bills!'
+      },
+      {
+        title: 'Create API Key',
+        content: 'Go to Settings → API keys → Click "+ Create new secret key"',
+        detail: 'Name it "Job Command Center" and click Create'
+      },
+      {
+        title: 'Copy Key IMMEDIATELY',
+        content: '⚠️ IMPORTANT: Copy the key right now - you will never see it again!',
+        detail: 'The key starts with "sk-proj-..."'
+      },
+      {
+        title: 'Paste in App',
+        content: 'Go to API Settings in this app, select "OpenAI", and paste your key',
+        detail: 'Select "gpt-4o-mini" for best value'
+      }
+    ]
+  },
+  anthropic: {
+    name: 'Anthropic (Claude)',
+    icon: '🧠',
+    tagline: 'Excellent reasoning - Prepaid credits',
+    cost: '$5 minimum',
+    steps: [
+      {
+        title: 'Go to Anthropic Console',
+        content: 'Open your browser and go to:',
+        link: 'https://console.anthropic.com',
+        linkText: 'console.anthropic.com'
+      },
+      {
+        title: 'Create Account',
+        content: 'Click "Sign up" and enter your email',
+        detail: 'Create a strong password and verify your email'
+      },
+      {
+        title: 'Add Credits',
+        content: 'Go to Settings → Billing → Add payment method → Buy credits',
+        visual: `┌─────────────────────┐
+│  Billing            │
+├─────────────────────┤
+│  Balance: $0.00     │
+│                     │
+│  [Add payment]      │
+│  [Buy credits]      │
+└─────────────────────┘`,
+        detail: 'Minimum $5 - this will last weeks of job searching'
+      },
+      {
+        title: 'Create API Key',
+        content: 'Go to API Keys in the sidebar → Click "Create Key"',
+        detail: 'Name it "Job Command Center"'
+      },
+      {
+        title: 'Copy Key IMMEDIATELY',
+        content: '⚠️ IMPORTANT: Copy the key right now - you will never see it again!',
+        detail: 'The key starts with "sk-ant-..."'
+      },
+      {
+        title: 'Paste in App',
+        content: 'Go to API Settings in this app, select "Anthropic (Claude)", and paste your key',
+        detail: 'Select "claude-sonnet-4-20250514" for best results'
+      }
+    ]
+  },
+  ollama: {
+    name: 'Ollama (Local)',
+    icon: '🦙',
+    tagline: 'FREE - Runs on your computer',
+    cost: 'Free',
+    steps: [
+      {
+        title: 'Check Requirements',
+        content: 'Your computer needs: 8GB+ RAM, 5GB free disk space',
+        detail: '16GB RAM recommended for best performance'
+      },
+      {
+        title: 'Download Ollama',
+        content: 'Go to ollama.com and download for your system:',
+        link: 'https://ollama.com/download',
+        linkText: 'ollama.com/download',
+        detail: 'Available for Windows, Mac, and Linux'
+      },
+      {
+        title: 'Install Ollama',
+        content: 'Run the installer and follow the prompts',
+        detail: 'Windows/Mac: Double-click the downloaded file. Linux: Run the curl command.'
+      },
+      {
+        title: 'Download a Model',
+        content: 'Open Terminal/Command Prompt and run:',
+        code: 'ollama pull llama3.1',
+        detail: 'Wait 5-15 minutes for download (one-time)'
+      },
+      {
+        title: 'Make Sure Ollama is Running',
+        content: 'Look for the 🦙 icon in your system tray (Windows) or menu bar (Mac)',
+        detail: 'Linux: Run "ollama serve" in a terminal'
+      },
+      {
+        title: 'Configure in App',
+        content: 'Go to API Settings, select "Ollama (Local)", choose your model',
+        detail: 'No API key needed!'
+      }
+    ]
+  }
+}
+
+// Interactive Setup Guide Modal
+function SetupGuideModal({ isOpen, onClose, onOpenSettings }) {
+  const [selectedProvider, setSelectedProvider] = useState(null)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [copiedCode, setCopiedCode] = useState(false)
+
+  if (!isOpen) return null
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code)
+    setCopiedCode(true)
+    setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  const handleProviderSelect = (provider) => {
+    setSelectedProvider(provider)
+    setCurrentStep(0)
+  }
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    } else {
+      setSelectedProvider(null)
+    }
+  }
+
+  const handleNext = () => {
+    const guide = SETUP_GUIDES[selectedProvider]
+    if (currentStep < guide.steps.length - 1) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const handleFinish = () => {
+    onClose()
+    onOpenSettings()
+  }
+
+  const guide = selectedProvider ? SETUP_GUIDES[selectedProvider] : null
+  const step = guide ? guide.steps[currentStep] : null
+  const isLastStep = guide && currentStep === guide.steps.length - 1
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {selectedProvider && (
+                <button
+                  onClick={handleBack}
+                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+              <h2 className="text-xl font-semibold text-gray-900">
+                {selectedProvider ? `${guide.icon} ${guide.name} Setup` : '🚀 API Setup Guide'}
+              </h2>
+            </div>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {!selectedProvider ? (
+              /* Provider Selection */
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <p className="text-gray-600">Choose an AI provider to get started. We'll walk you through the setup step by step.</p>
+                  <p className="text-sm text-gray-500 mt-2">💡 Tip: Start with <strong>Google Gemini</strong> - it's free!</p>
+                </div>
+
+                <div className="grid gap-4">
+                  {Object.entries(SETUP_GUIDES).map(([key, provider]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleProviderSelect(key)}
+                      className="flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:shadow-md transition-all text-left"
+                    >
+                      <div className="text-3xl">{provider.icon}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-gray-900">{provider.name}</h3>
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                            provider.cost === 'Free'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {provider.cost}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{provider.tagline}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    <strong>Don't have time right now?</strong> No problem! The app works without AI features.
+                    You can set this up later anytime.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* Step-by-step Guide */
+              <div className="space-y-6">
+                {/* Progress */}
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-sm text-gray-500">
+                    Step {currentStep + 1} of {guide.steps.length}
+                  </span>
+                  <div className="flex gap-1">
+                    {guide.steps.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`w-8 h-1.5 rounded-full ${
+                          idx <= currentStep ? 'bg-indigo-600' : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step Content */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {step.title}
+                  </h3>
+
+                  <p className="text-gray-700">{step.content}</p>
+
+                  {step.link && (
+                    <a
+                      href={step.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Open {step.linkText}
+                    </a>
+                  )}
+
+                  {step.visual && (
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm whitespace-pre overflow-x-auto">
+                      {step.visual}
+                    </div>
+                  )}
+
+                  {step.code && (
+                    <div className="relative">
+                      <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
+                        {step.code}
+                      </div>
+                      <button
+                        onClick={() => handleCopyCode(step.code)}
+                        className="absolute top-2 right-2 p-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+                        title="Copy command"
+                      >
+                        {copiedCode ? (
+                          <Check className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-300" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {step.detail && (
+                    <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                      💡 {step.detail}
+                    </p>
+                  )}
+                </div>
+
+                {/* Warning for key steps */}
+                {step.content.includes('IMPORTANT') && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 font-medium">
+                      ⚠️ Don't skip this step! Make sure to copy your key before clicking "Done" or closing the window.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          {selectedProvider && (
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-between">
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Back
+              </button>
+
+              {isLastStep ? (
+                <button
+                  onClick={handleFinish}
+                  className="px-6 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Done - Open Settings
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  Next Step
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // Settings Modal Component
 function APISettingsModal({ isOpen, onClose }) {
@@ -598,6 +1014,7 @@ function ResearchStats({ stats }) {
 // Main AI Job Matcher Component
 export default function AIJobMatcher({ onAddApplication, resumeVersions }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false)
   const [resumeText, setResumeText] = useState('')
   const [uploadedFileName, setUploadedFileName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -755,49 +1172,98 @@ export default function AIJobMatcher({ onAddApplication, resumeVersions }) {
             Upload your resume for comprehensive job matching powered by AI
           </p>
         </div>
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          API Settings
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsSetupGuideOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            Setup Guide
+          </button>
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            API Settings
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
       <ResearchStats stats={stats} />
 
-      {/* API Status */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center gap-2">
-          {hasLLMKey ? (
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-yellow-500" />
-          )}
-          <span className="text-sm text-gray-700">
-            LLM: {PROVIDER_CONFIG[llmSettings.provider]?.name}
-          </span>
+      {/* Get Started Banner - Shows when no LLM API key is configured */}
+      {!hasLLMKey && (
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                Get Started with AI Features
+              </h3>
+              <p className="text-indigo-100 mb-4">
+                Set up an AI provider to unlock powerful resume analysis and job matching.
+                We'll walk you through it step by step - it only takes a few minutes!
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setIsSetupGuideOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 font-medium rounded-lg hover:bg-indigo-50 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Step-by-Step Setup Guide
+                </button>
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-400/30 text-white font-medium rounded-lg hover:bg-indigo-400/50 transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  I have an API key
+                </button>
+              </div>
+            </div>
+            <div className="hidden md:block ml-6">
+              <div className="text-6xl">🚀</div>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-indigo-400/30">
+            <p className="text-sm text-indigo-200">
+              💡 <strong>Tip:</strong> Google Gemini is <strong>free</strong> and works great for job searching!
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {hasJobAPIKey ? (
+      )}
+
+      {/* API Status - Shows when at least LLM is configured */}
+      {hasLLMKey && (
+        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-yellow-500" />
+            <span className="text-sm text-gray-700">
+              LLM: {PROVIDER_CONFIG[llmSettings.provider]?.name}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasJobAPIKey ? (
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-yellow-500" />
+            )}
+            <span className="text-sm text-gray-700">
+              Jobs: {JOB_API_CONFIG[jobAPISettings.provider]?.name}
+            </span>
+          </div>
+          {!hasJobAPIKey && (
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              Configure Job API →
+            </button>
           )}
-          <span className="text-sm text-gray-700">
-            Jobs: {JOB_API_CONFIG[jobAPISettings.provider]?.name}
-          </span>
         </div>
-        {!isReady && (
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-          >
-            Configure APIs →
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -1056,6 +1522,13 @@ export default function AIJobMatcher({ onAddApplication, resumeVersions }) {
       <APISettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Setup Guide Modal */}
+      <SetupGuideModal
+        isOpen={isSetupGuideOpen}
+        onClose={() => setIsSetupGuideOpen(false)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
     </div>
   )
