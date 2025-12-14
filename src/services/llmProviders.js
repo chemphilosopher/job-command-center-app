@@ -9,32 +9,68 @@ export const LLM_PROVIDERS = {
   BROWSER: 'browser'
 }
 
+// Model configurations with pricing tiers (sorted expensive to cheap)
+export const MODEL_OPTIONS = {
+  openai: [
+    { id: 'o1', name: 'o1 (Reasoning)', tier: 'premium', desc: 'Best reasoning, very expensive' },
+    { id: 'o1-mini', name: 'o1-mini (Reasoning)', tier: 'expensive', desc: 'Good reasoning, expensive' },
+    { id: 'gpt-4o', name: 'GPT-4o', tier: 'standard', desc: 'Flagship multimodal model' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', tier: 'cheap', desc: 'Fast & affordable (Recommended)' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', tier: 'standard', desc: 'Previous flagship' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', tier: 'budget', desc: 'Cheapest, basic tasks' }
+  ],
+  anthropic: [
+    { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', tier: 'premium', desc: 'Most capable, very expensive' },
+    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', tier: 'standard', desc: 'Balanced performance (Recommended)' },
+    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', tier: 'standard', desc: 'Previous best model' },
+    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', tier: 'cheap', desc: 'Fast and affordable' },
+    { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', tier: 'budget', desc: 'Cheapest Claude' }
+  ],
+  gemini: [
+    { id: 'gemini-2.5-pro-preview-05-06', name: 'Gemini 2.5 Pro', tier: 'standard', desc: 'Most capable Gemini' },
+    { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', tier: 'cheap', desc: 'Fast & smart (Recommended)' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', tier: 'cheap', desc: 'Fast multimodal' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', tier: 'standard', desc: 'Previous pro model' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', tier: 'budget', desc: 'Budget option' }
+  ],
+  ollama: [
+    { id: 'llama3.2', name: 'Llama 3.2', tier: 'free', desc: 'Latest Llama (Recommended)' },
+    { id: 'llama3.1', name: 'Llama 3.1', tier: 'free', desc: 'Very capable' },
+    { id: 'llama3', name: 'Llama 3', tier: 'free', desc: 'Solid performance' },
+    { id: 'mixtral', name: 'Mixtral 8x7B', tier: 'free', desc: 'MoE architecture' },
+    { id: 'mistral', name: 'Mistral 7B', tier: 'free', desc: 'Fast and efficient' },
+    { id: 'qwen2.5', name: 'Qwen 2.5', tier: 'free', desc: 'Strong multilingual' },
+    { id: 'phi3', name: 'Phi-3', tier: 'free', desc: 'Microsoft small model' },
+    { id: 'codellama', name: 'Code Llama', tier: 'free', desc: 'Optimized for code' }
+  ]
+}
+
 export const PROVIDER_CONFIG = {
   [LLM_PROVIDERS.OPENAI]: {
     name: 'OpenAI',
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    models: MODEL_OPTIONS.openai.map(m => m.id),
     defaultModel: 'gpt-4o-mini',
     requiresApiKey: true,
     apiKeyName: 'OPENAI_API_KEY'
   },
   [LLM_PROVIDERS.ANTHROPIC]: {
     name: 'Anthropic (Claude)',
-    models: ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307'],
+    models: MODEL_OPTIONS.anthropic.map(m => m.id),
     defaultModel: 'claude-sonnet-4-20250514',
     requiresApiKey: true,
     apiKeyName: 'ANTHROPIC_API_KEY'
   },
   [LLM_PROVIDERS.GEMINI]: {
     name: 'Google Gemini',
-    models: ['gemini-2.5-flash-preview-05-20', 'gemini-2.5-pro-preview-05-06', 'gemini-2.0-flash'],
+    models: MODEL_OPTIONS.gemini.map(m => m.id),
     defaultModel: 'gemini-2.5-flash-preview-05-20',
     requiresApiKey: true,
     apiKeyName: 'GEMINI_API_KEY'
   },
   [LLM_PROVIDERS.OLLAMA]: {
     name: 'Ollama (Local)',
-    models: ['llama3.1', 'llama3', 'mistral', 'codellama', 'phi3'],
-    defaultModel: 'llama3.1',
+    models: MODEL_OPTIONS.ollama.map(m => m.id),
+    defaultModel: 'llama3.2',
     requiresApiKey: false,
     baseUrl: 'http://localhost:11434'
   },

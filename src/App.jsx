@@ -60,7 +60,8 @@ import {
   callLLM,
   createQualificationChecklistPrompt,
   createCoachingPrompt,
-  createJobParserPrompt
+  createJobParserPrompt,
+  MODEL_OPTIONS
 } from './services/llmProviders'
 import './index.css'
 // Recharts is imported by the lazy-loaded Dashboard component
@@ -3999,6 +4000,57 @@ function SettingsPanel({ applications, resumeVersions, onClearData, onClose, onE
                   <option value="gemini">Google Gemini (FREE tier available)</option>
                   <option value="ollama">Ollama (Local - Free)</option>
                 </select>
+              </div>
+
+              {/* Model Selection */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                <select
+                  value={llmSettings?.model || ''}
+                  onChange={(e) => {
+                    onLlmSettingsChange({
+                      ...llmSettings,
+                      model: e.target.value
+                    })
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {(MODEL_OPTIONS[llmSettings?.provider] || []).map(model => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} - {model.desc}
+                    </option>
+                  ))}
+                </select>
+                {/* Pricing tier indicator */}
+                {llmSettings?.model && MODEL_OPTIONS[llmSettings?.provider] && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {(() => {
+                      const model = MODEL_OPTIONS[llmSettings.provider]?.find(m => m.id === llmSettings.model)
+                      if (!model) return null
+                      const tierColors = {
+                        premium: 'text-red-600 bg-red-50',
+                        expensive: 'text-orange-600 bg-orange-50',
+                        standard: 'text-blue-600 bg-blue-50',
+                        cheap: 'text-green-600 bg-green-50',
+                        budget: 'text-emerald-600 bg-emerald-50',
+                        free: 'text-purple-600 bg-purple-50'
+                      }
+                      const tierLabels = {
+                        premium: '$$$$ Premium',
+                        expensive: '$$$ Expensive',
+                        standard: '$$ Standard',
+                        cheap: '$ Affordable',
+                        budget: '¢ Budget',
+                        free: 'Free (Local)'
+                      }
+                      return (
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${tierColors[model.tier]}`}>
+                          {tierLabels[model.tier]}
+                        </span>
+                      )
+                    })()}
+                  </p>
+                )}
               </div>
 
               {/* API Key Input */}
