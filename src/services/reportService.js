@@ -1,12 +1,22 @@
 // Report generation service for PDF exports
-import { jsPDF } from 'jspdf'
+// Uses dynamic imports for jsPDF to enable code splitting
 import { formatDate } from '../utils'
+
+// Lazy load jsPDF only when needed
+let jsPDFModule = null
+async function getJsPDF() {
+  if (!jsPDFModule) {
+    jsPDFModule = await import('jspdf')
+  }
+  return jsPDFModule.jsPDF
+}
 
 /**
  * Generate Interview Preparation PDF Summary
  * Useful for printing before interviews
  */
-export function generateInterviewPrepPDF(application, resumeVersion) {
+export async function generateInterviewPrepPDF(application, resumeVersion) {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   let y = 20
@@ -151,7 +161,8 @@ export function generateInterviewPrepPDF(application, resumeVersion) {
 /**
  * Generate Job Search Summary Report PDF
  */
-export function generateSearchSummaryPDF(applications, stats) {
+export async function generateSearchSummaryPDF(applications, stats) {
+  const jsPDF = await getJsPDF()
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   let y = 20
