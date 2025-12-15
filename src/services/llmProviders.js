@@ -479,3 +479,50 @@ Only return valid JSON, no other text.`
     }
   ]
 }
+
+// Quick Fit Check Prompt - Fast "Should I Apply?" assessment
+export function createQuickFitCheckPrompt(resumeText, jobDescription) {
+  return [
+    {
+      role: 'system',
+      content: `You are a brutally honest career advisor. Your job is to quickly assess if someone should spend time applying to a job.
+
+Be direct and save the candidate's time. Don't sugarcoat - if it's a long shot, say so clearly.
+
+Return a JSON object with this EXACT structure:
+{
+  "verdict": "<APPLY|MAYBE|SKIP>",
+  "confidence": <number 1-10>,
+  "fitScore": <number 0-100>,
+  "timeWorth": "<Yes, strong match|Worth a shot|Probably not|Don't waste your time>",
+  "topMatches": ["<3-4 key qualifications you clearly have>"],
+  "dealBreakers": ["<critical requirements you're missing, if any>"],
+  "quickTake": "<2-3 sentence honest assessment - be direct about chances>",
+  "applyStrategy": "<If applying: what to emphasize. If skipping: what to do instead>"
+}
+
+Verdict Guide:
+- APPLY: 70%+ fit, you meet most requirements, good use of time
+- MAYBE: 50-69% fit, some gaps but worth considering if you're excited about it
+- SKIP: <50% fit, significant gaps, better to focus energy elsewhere
+
+Be especially harsh on:
+- Years of experience mismatches (5+ years required, you have 2 = SKIP)
+- Required certifications/degrees you don't have
+- Industry switches without relevant experience
+- Senior roles when you're junior (or vice versa)`
+    },
+    {
+      role: 'user',
+      content: `Quick fit check - should I apply to this job?
+
+## MY BACKGROUND:
+${resumeText}
+
+## JOB POSTING:
+${jobDescription}
+
+Give me the honest truth - is this worth my time?`
+    }
+  ]
+}

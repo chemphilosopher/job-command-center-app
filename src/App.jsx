@@ -61,6 +61,7 @@ import {
   createQualificationChecklistPrompt,
   createCoachingPrompt,
   createJobParserPrompt,
+  createQuickFitCheckPrompt,
   MODEL_OPTIONS
 } from './services/llmProviders'
 import './index.css'
@@ -1031,6 +1032,258 @@ function AISetupBanner({ onSetupGuide, onSettings, onDismiss }) {
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Quick Fit Check Modal - "Should I Apply?" assessment
+function QuickFitCheckModal({ onClose, resumeVersions, llmSettings }) {
+  const [jobDescription, setJobDescription] = useState('')
+  const [selectedResume, setSelectedResume] = useState('')
+  const [isChecking, setIsChecking] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
+
+  const handleCheck = async () => {
+    if (!jobDescription.trim()) {
+      setError('Please paste a job description')
+      return
+    }
+
+    const resume = resumeVersions.find(r => r.id === selectedResume)
+    if (!resume?.content) {
+      setError('Please select a resume with content')
+      return
+    }
+
+    const apiKey = llmSettings?.apiKeys?.[
+      llmSettings?.provider === 'openai' ? 'OPENAI_API_KEY' :
+      llmSettings?.provider === 'anthropic' ? 'ANTHROPIC_API_KEY' :
+      llmSettings?.provider === 'gemini' ? 'GEMINI_API_KEY' : null
+    ]
+
+    if (!apiKey && llmSettings?.provider !== 'ollama') {
+      setError('Please configure an AI provider in Settings first')
+      return
+    }
+
+    setIsChecking(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const messages = createQuickFitCheckPrompt(resume.content, jobDescription)
+      const response = await callLLM(llmSettings, messages)
+
+      // Parse JSON response
+      let parsed
+      try {
+        const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response]
+        parsed = JSON.parse(jsonMatch[1].trim())
+      } catch {
+        parsed = { quickTake: response, verdict: 'MAYBE', fitScore: 50 }
+      }
+
+      setResult(parsed)
+    } catch (err) {
+      setError(err.message || 'Failed to analyze job fit')
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
+  const getVerdictStyle = (verdict) => {
+    switch (verdict) {
+      case 'APPLY': return 'bg-green-100 text-green-800 border-green-300'
+      case 'MAYBE': return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+      case 'SKIP': return 'bg-red-100 text-red-800 border-red-300'
+      default: return 'bg-gray-100 text-gray-800 border-gray-300'
+    }
+  }
+
+  const getVerdictIcon = (verdict) => {
+    switch (verdict) {
+      case 'APPLY': return <CheckCircle className="w-8 h-8 text-green-600" />
+      case 'MAYBE': return <AlertCircle className="w-8 h-8 text-yellow-600" />
+      case 'SKIP': return <XCircle className="w-8 h-8 text-red-600" />
+      default: return null
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Target className="w-6 h-6" />
+                <div>
+                  <h2 className="text-xl font-semibold">Quick Fit Check</h2>
+                  <p className="text-indigo-200 text-sm">Should I apply to this job?</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            {!result ? (
+              <div className="space-y-4">
+                {/* Resume Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Resume</label>
+                  <select
+                    value={selectedResume}
+                    onChange={(e) => setSelectedResume(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select a resume...</option>
+                    {resumeVersions.filter(r => r.content).map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                  {resumeVersions.filter(r => r.content).length === 0 && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      No resumes with content found. Add resume text in the Resumes tab first.
+                    </p>
+                  )}
+                </div>
+
+                {/* Job Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Job Description</label>
+                  <textarea
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    rows={10}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                    placeholder="Paste the full job description here..."
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {/* Check Button */}
+                <button
+                  onClick={handleCheck}
+                  disabled={isChecking || !jobDescription.trim() || !selectedResume}
+                  className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    isChecking || !jobDescription.trim() || !selectedResume
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {isChecking ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      Check My Fit
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Verdict */}
+                <div className={`p-6 rounded-xl border-2 text-center ${getVerdictStyle(result.verdict)}`}>
+                  <div className="flex justify-center mb-3">
+                    {getVerdictIcon(result.verdict)}
+                  </div>
+                  <div className="text-3xl font-bold mb-1">{result.verdict}</div>
+                  <div className="text-lg">{result.timeWorth}</div>
+                  <div className="mt-2 text-sm opacity-75">
+                    Fit Score: {result.fitScore}% | Confidence: {result.confidence}/10
+                  </div>
+                </div>
+
+                {/* Quick Take */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 mb-2">The Honest Truth</h3>
+                  <p className="text-gray-700">{result.quickTake}</p>
+                </div>
+
+                {/* Top Matches */}
+                {result.topMatches?.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      What You Have
+                    </h3>
+                    <ul className="space-y-1">
+                      {result.topMatches.map((match, i) => (
+                        <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
+                          <span className="text-green-500 mt-0.5">+</span>
+                          {match}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Deal Breakers */}
+                {result.dealBreakers?.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <XCircle className="w-4 h-4 text-red-600" />
+                      Deal Breakers
+                    </h3>
+                    <ul className="space-y-1">
+                      {result.dealBreakers.map((gap, i) => (
+                        <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
+                          <span className="text-red-500 mt-0.5">-</span>
+                          {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Strategy */}
+                {result.applyStrategy && (
+                  <div className="bg-indigo-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-indigo-900 mb-2">
+                      {result.verdict === 'SKIP' ? 'Instead, Try This' : 'Apply Strategy'}
+                    </h3>
+                    <p className="text-indigo-800 text-sm">{result.applyStrategy}</p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setResult(null)
+                      setJobDescription('')
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                  >
+                    Check Another Job
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -5921,6 +6174,7 @@ function App() {
     return !localStorage.getItem('pharma_job_tracker_welcomed')
   })
   const [showAPISetupGuide, setShowAPISetupGuide] = useState(false)
+  const [showQuickFitCheck, setShowQuickFitCheck] = useState(false)
   const [dismissedAIBanner, setDismissedAIBanner] = useState(() => {
     const dismissed = localStorage.getItem('pharma_job_tracker_ai_banner_dismissed')
     if (!dismissed) return false
@@ -6802,6 +7056,14 @@ function App() {
                 AI Coach
               </button>
               <button
+                onClick={() => setShowQuickFitCheck(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 transition-colors"
+                title="Quick Fit Check - Should I Apply?"
+              >
+                <Target className="w-4 h-4" />
+                Fit Check
+              </button>
+              <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Settings"
@@ -7472,6 +7734,15 @@ function App() {
             setShowAPISetupGuide(false)
             setActiveTab('aiMatch')
           }}
+        />
+      )}
+
+      {/* Quick Fit Check Modal */}
+      {showQuickFitCheck && (
+        <QuickFitCheckModal
+          onClose={() => setShowQuickFitCheck(false)}
+          resumeVersions={resumeVersions}
+          llmSettings={llmSettings}
         />
       )}
     </div>
