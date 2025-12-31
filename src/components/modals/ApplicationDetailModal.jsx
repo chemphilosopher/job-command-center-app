@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   X, FileText, CheckCircle, Sparkles, Calendar, Building2, Clock,
-  Printer, Plus, AlertCircle
+  Printer, Plus, AlertCircle, Trash2
 } from 'lucide-react'
 import {
   REGION_OPTIONS, COMPANY_TYPE_OPTIONS, MODALITY_OPTIONS,
@@ -15,6 +15,7 @@ export default function ApplicationDetailModal({
   resumeVersions,
   onClose,
   onSave,
+  onDelete,
   llmSettings,
   onRunAIAnalysis
 }) {
@@ -83,6 +84,7 @@ export default function ApplicationDetailModal({
   const [showPrepSummary, setShowPrepSummary] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   if (!application) return null
 
@@ -1086,19 +1088,51 @@ export default function ApplicationDetailModal({
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
-            >
-              Save Changes
-            </button>
+          <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
+            <div>
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-red-600">Delete this application?</span>
+                  <button
+                    onClick={() => {
+                      onDelete(application.id)
+                      onClose()
+                    }}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                  >
+                    Yes, Delete
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       </div>

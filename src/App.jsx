@@ -2396,8 +2396,9 @@ const INTERVIEW_TYPES = ['Phone Screen', 'Video Technical', 'Onsite', 'Panel', '
 const INTERVIEW_OUTCOMES = ['Positive', 'Neutral', 'Negative', 'Awaiting Feedback']
 
 // Application Detail Modal with Tabs
-function ApplicationDetailModal({ application, resumeVersions, onClose, onSave, llmSettings, onRunAIAnalysis }) {
+function ApplicationDetailModal({ application, resumeVersions, onClose, onSave, onDelete, llmSettings, onRunAIAnalysis }) {
   const [activeTab, setActiveTab] = useState('details')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [formData, setFormData] = useState({
     // Basic details
     company: application?.company || '',
@@ -3502,19 +3503,51 @@ Provide comprehensive research to help me prepare for this role.`
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
-            >
-              Save Changes
-            </button>
+          <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
+            <div>
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-red-600">Delete this application?</span>
+                  <button
+                    onClick={() => {
+                      onDelete(application.id)
+                      onClose()
+                    }}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                  >
+                    Yes, Delete
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -7365,7 +7398,7 @@ function App() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedApplications.map((app) => (
-                  <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={app.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => openEditModal(app)}>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <div className="font-medium text-gray-900">{app.company}</div>
@@ -7375,6 +7408,7 @@ function App() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-gray-400 hover:text-indigo-600"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
@@ -7416,7 +7450,7 @@ function App() {
                         {getResumeName(app.resumeVersion)}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setStatusUpdateApp(app)}
@@ -7496,6 +7530,11 @@ function App() {
             ))
             setEditingApplication(null)
             showToast('Application updated successfully!')
+          }}
+          onDelete={(id) => {
+            setApplications(prev => prev.filter(app => app.id !== id))
+            setEditingApplication(null)
+            showToast('Application deleted', 'success')
           }}
           llmSettings={llmSettings}
           onRunAIAnalysis={handleRunAIAnalysis}
