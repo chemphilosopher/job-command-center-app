@@ -12,6 +12,7 @@ export const LLM_PROVIDERS = {
 // Model configurations with pricing tiers (sorted expensive to cheap)
 export const MODEL_OPTIONS = {
   openai: [
+    { id: 'gpt-5', name: 'ChatGPT 5.0', tier: 'premium', desc: 'Most advanced GPT model' },
     { id: 'o1', name: 'o1 (Reasoning)', tier: 'premium', desc: 'Best reasoning, very expensive' },
     { id: 'o1-mini', name: 'o1-mini (Reasoning)', tier: 'expensive', desc: 'Good reasoning, expensive' },
     { id: 'gpt-4o', name: 'GPT-4o', tier: 'standard', desc: 'Flagship multimodal model' },
@@ -20,6 +21,8 @@ export const MODEL_OPTIONS = {
     { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', tier: 'budget', desc: 'Cheapest, basic tasks' }
   ],
   anthropic: [
+    { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', tier: 'premium', desc: 'Most capable Claude model' },
+    { id: 'claude-sonnet-4-5-20251101', name: 'Claude Sonnet 4.5', tier: 'premium', desc: 'Best balance of speed & intelligence' },
     { id: 'claude-opus-4-20250514', name: 'Claude Opus 4', tier: 'premium', desc: 'Most capable, very expensive' },
     { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', tier: 'standard', desc: 'Balanced performance (Recommended)' },
     { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', tier: 'standard', desc: 'Previous best model' },
@@ -27,6 +30,7 @@ export const MODEL_OPTIONS = {
     { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', tier: 'budget', desc: 'Cheapest Claude' }
   ],
   gemini: [
+    { id: 'gemini-3.0-pro', name: 'Gemini 3.0 Pro', tier: 'premium', desc: 'Most advanced Gemini model' },
     { id: 'gemini-2.5-pro-preview-05-06', name: 'Gemini 2.5 Pro', tier: 'standard', desc: 'Most capable Gemini' },
     { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', tier: 'cheap', desc: 'Fast & smart (Recommended)' },
     { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', tier: 'cheap', desc: 'Fast multimodal' },
