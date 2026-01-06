@@ -542,7 +542,8 @@ const STORAGE_KEYS = {
   networkingStats: 'pharma_job_tracker_networking_stats',
   outreachTemplates: 'pharma_job_tracker_outreach_templates',
   followUpCadences: 'pharma_job_tracker_followup_cadences',
-  passedJobs: 'pharma_job_tracker_passed_jobs'
+  passedJobs: 'pharma_job_tracker_passed_jobs',
+  personalChecklist: 'pharma_job_tracker_personal_checklist'
 }
 
 // Target Company Categories
@@ -713,6 +714,26 @@ function saveOutreachTemplates(templates) {
     localStorage.setItem(STORAGE_KEYS.outreachTemplates, JSON.stringify(templates))
   } catch (error) {
     console.error('Error saving outreach templates:', error)
+  }
+}
+
+function loadPersonalChecklist() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.personalChecklist)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (error) {
+    console.error('Error loading personal checklist:', error)
+  }
+  return null
+}
+
+function savePersonalChecklist(items) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.personalChecklist, JSON.stringify(items))
+  } catch (error) {
+    console.error('Error saving personal checklist:', error)
   }
 }
 
@@ -7386,6 +7407,214 @@ function PassedJobsView({ passedJobs, setPassedJobs, showToast }) {
   )
 }
 
+// Personal Checklist View - Track personal job search tasks
+function PersonalChecklistView({ checklistItems, setChecklistItems, showToast }) {
+  const [newItemText, setNewItemText] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
+
+  const addItem = () => {
+    if (!newItemText.trim()) return
+    const newItem = {
+      id: uuidv4(),
+      text: newItemText.trim(),
+      completed: false,
+      createdAt: new Date().toISOString(),
+      completedAt: null
+    }
+    setChecklistItems(prev => [newItem, ...prev])
+    setNewItemText('')
+    showToast('Task added')
+  }
+
+  const toggleItem = (id) => {
+    setChecklistItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const nowCompleted = !item.completed
+        return {
+          ...item,
+          completed: nowCompleted,
+          completedAt: nowCompleted ? new Date().toISOString() : null
+        }
+      }
+      return item
+    }))
+  }
+
+  const deleteItem = (id) => {
+    setChecklistItems(prev => prev.filter(item => item.id !== id))
+    showToast('Task removed')
+  }
+
+  const startEditing = (item) => {
+    setEditingId(item.id)
+    setEditText(item.text)
+  }
+
+  const saveEdit = (id) => {
+    if (!editText.trim()) return
+    setChecklistItems(prev => prev.map(item =>
+      item.id === id ? { ...item, text: editText.trim() } : item
+    ))
+    setEditingId(null)
+    setEditText('')
+  }
+
+  const clearCompleted = () => {
+    const completedCount = checklistItems.filter(i => i.completed).length
+    if (completedCount === 0) return
+    if (confirm(`Remove ${completedCount} completed task${completedCount > 1 ? 's' : ''}?`)) {
+      setChecklistItems(prev => prev.filter(item => !item.completed))
+      showToast(`${completedCount} completed task${completedCount > 1 ? 's' : ''} cleared`)
+    }
+  }
+
+  const pendingItems = checklistItems.filter(i => !i.completed)
+  const completedItems = checklistItems.filter(i => i.completed)
+
+  return (
+    <div className="p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">My Job Search Checklist</h2>
+            <p className="text-sm text-gray-500 mt-1">Track tasks and things you need to do</p>
+          </div>
+          {completedItems.length > 0 && (
+            <button
+              onClick={clearCompleted}
+              className="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear completed
+            </button>
+          )}
+        </div>
+
+        {/* Add new item */}
+        <div className="flex gap-2 mb-6">
+          <input
+            type="text"
+            value={newItemText}
+            onChange={(e) => setNewItemText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addItem()}
+            placeholder="Add a new task..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <button
+            onClick={addItem}
+            disabled={!newItemText.trim()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        {checklistItems.length > 0 && (
+          <div className="mb-6">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>{completedItems.length} of {checklistItems.length} completed</span>
+              <span>{Math.round((completedItems.length / checklistItems.length) * 100)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(completedItems.length / checklistItems.length) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Pending items */}
+        {pendingItems.length > 0 && (
+          <div className="space-y-2 mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">To Do ({pendingItems.length})</h3>
+            {pendingItems.map(item => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors"
+              >
+                <button
+                  onClick={() => toggleItem(item.id)}
+                  className="w-5 h-5 rounded border-2 border-gray-300 hover:border-indigo-500 flex-shrink-0 transition-colors"
+                />
+                {editingId === item.id ? (
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEdit(item.id)
+                      if (e.key === 'Escape') setEditingId(null)
+                    }}
+                    onBlur={() => saveEdit(item.id)}
+                    autoFocus
+                    className="flex-1 px-2 py-1 border border-indigo-300 rounded focus:ring-2 focus:ring-indigo-500"
+                  />
+                ) : (
+                  <span
+                    className="flex-1 text-gray-800 cursor-pointer"
+                    onClick={() => startEditing(item)}
+                  >
+                    {item.text}
+                  </span>
+                )}
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Delete task"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Completed items */}
+        {completedItems.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Completed ({completedItems.length})</h3>
+            {completedItems.map(item => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-3 bg-green-50 rounded-lg group"
+              >
+                <button
+                  onClick={() => toggleItem(item.id)}
+                  className="w-5 h-5 rounded border-2 border-green-500 bg-green-500 flex-shrink-0 flex items-center justify-center"
+                >
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </button>
+                <span className="flex-1 text-gray-500 line-through">{item.text}</span>
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Delete task"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {checklistItems.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="font-medium">No tasks yet</p>
+            <p className="text-sm mt-1">Add your first task above to get started</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Main App Component
 function App() {
   const [applications, setApplications] = useState([])
@@ -7395,6 +7624,7 @@ function App() {
   const [networkingTouches, setNetworkingTouches] = useState([])
   const [networkingStats, setNetworkingStats] = useState({ currentStreak: 0, longestStreak: 0, totalTouches: 0, lastTouchDate: null })
   const [passedJobs, setPassedJobs] = useState([]) // Jobs reviewed but not a good match
+  const [personalChecklist, setPersonalChecklist] = useState([]) // Personal job search tasks
   const [toast, setToast] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'dateApplied', direction: 'desc' })
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -7909,6 +8139,7 @@ function App() {
         const storedTouches = loadNetworkingTouches()
         const storedStats = loadNetworkingStats()
         const storedPassedJobs = loadPassedJobs()
+        const storedChecklist = loadPersonalChecklist()
 
         if (storedTemplates && storedTemplates.length > 0) {
           setOutreachTemplates(storedTemplates)
@@ -7923,6 +8154,10 @@ function App() {
 
         if (storedStats) {
           setNetworkingStats(storedStats)
+        }
+
+        if (storedChecklist && storedChecklist.length > 0) {
+          setPersonalChecklist(storedChecklist)
         }
 
         if (storedPassedJobs && storedPassedJobs.length > 0) {
@@ -7940,6 +8175,7 @@ function App() {
         const storedTouches = loadNetworkingTouches()
         const storedStats = loadNetworkingStats()
         const storedPassedJobs = loadPassedJobs()
+        const storedChecklist = loadPersonalChecklist()
 
         if (storedApps && storedApps.length > 0) setApplications(storedApps)
         if (storedResumes && storedResumes.length > 0) setResumeVersions(storedResumes)
@@ -7952,6 +8188,7 @@ function App() {
         if (storedTouches && storedTouches.length > 0) setNetworkingTouches(storedTouches)
         if (storedStats) setNetworkingStats(storedStats)
         if (storedPassedJobs && storedPassedJobs.length > 0) setPassedJobs(storedPassedJobs)
+        if (storedChecklist && storedChecklist.length > 0) setPersonalChecklist(storedChecklist)
       }
     }
 
@@ -7982,6 +8219,12 @@ function App() {
       savePassedJobs(passedJobs)
     }
   }, [passedJobs])
+
+  useEffect(() => {
+    if (personalChecklist.length > 0) {
+      savePersonalChecklist(personalChecklist)
+    }
+  }, [personalChecklist])
 
   useEffect(() => {
     if (outreachTemplates.length > 0) {
@@ -8618,6 +8861,17 @@ function App() {
             Passed ({passedJobs.length})
           </button>
           <button
+            onClick={() => setActiveTab('checklist')}
+            className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'checklist'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            Checklist {personalChecklist.filter(i => !i.completed).length > 0 && `(${personalChecklist.filter(i => !i.completed).length})`}
+          </button>
+          <button
             onClick={() => setActiveTab('strategy')}
             className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'strategy'
@@ -8803,6 +9057,15 @@ function App() {
           <PassedJobsView
             passedJobs={passedJobs}
             setPassedJobs={setPassedJobs}
+            showToast={showToast}
+          />
+        )}
+
+        {/* Personal Checklist View */}
+        {activeTab === 'checklist' && (
+          <PersonalChecklistView
+            checklistItems={personalChecklist}
+            setChecklistItems={setPersonalChecklist}
             showToast={showToast}
           />
         )}
