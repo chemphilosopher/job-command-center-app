@@ -5599,6 +5599,8 @@ function NetworkingView({
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [previewTemplate, setPreviewTemplate] = useState(null)
+  const [editingTouch, setEditingTouch] = useState(null) // Touch being viewed/edited
+  const [editingTouchDate, setEditingTouchDate] = useState(null) // Date of touch being edited
 
   // Get today's date string
   const today = new Date().toISOString().split('T')[0]
@@ -5711,6 +5713,40 @@ function NetworkingView({
       totalTouches: Math.max(0, networkingStats.totalTouches - 1)
     })
     showToast('Touch deleted')
+  }
+
+  // Update an existing touch
+  const handleUpdateTouch = (date, touchId, updatedData) => {
+    const updatedTouches = networkingTouches.map(t => {
+      if (t.date === date) {
+        return {
+          ...t,
+          touches: t.touches.map(touch =>
+            touch.id === touchId
+              ? { ...touch, ...updatedData, updatedAt: new Date().toISOString() }
+              : touch
+          )
+        }
+      }
+      return t
+    })
+    setNetworkingTouches(updatedTouches)
+    showToast('Touch updated')
+  }
+
+  // Open touch for editing
+  const openTouchDetail = (touch, date) => {
+    setEditingTouch({ ...touch })
+    setEditingTouchDate(date)
+  }
+
+  // Save touch edits
+  const saveTouchEdits = () => {
+    if (editingTouch && editingTouchDate) {
+      handleUpdateTouch(editingTouchDate, editingTouch.id, editingTouch)
+      setEditingTouch(null)
+      setEditingTouchDate(null)
+    }
   }
 
   // Template handlers
@@ -5892,7 +5928,11 @@ function NetworkingView({
             ) : (
               <div className="space-y-3">
                 {todayTouches.map((touch, index) => (
-                  <div key={touch.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div
+                    key={touch.id}
+                    className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                    onClick={() => openTouchDetail(touch, today)}
+                  >
                     <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
                       {getTouchTypeIcon(touch.type)}
                     </div>
@@ -5905,9 +5945,15 @@ function NetworkingView({
                         </span>
                         {touch.notes && <span className="ml-2">{touch.notes}</span>}
                       </p>
+                      {touch.advice && (
+                        <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Has advice notes
+                        </p>
+                      )}
                     </div>
                     <button
-                      onClick={() => handleDeleteTouch(today, touch.id)}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTouch(today, touch.id); }}
                       className="p-1 text-gray-400 hover:text-red-500"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -5946,11 +5992,13 @@ function NetworkingView({
                       {dayRecord.touches.map(touch => (
                         <span
                           key={touch.id}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                          title={`${touch.personName} at ${touch.company}`}
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full cursor-pointer hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                          title={`${touch.personName} at ${touch.company}${touch.advice ? ' (has advice)' : ''}`}
+                          onClick={() => openTouchDetail(touch, dayRecord.date)}
                         >
                           {getTouchTypeIcon(touch.type)}
                           {touch.personName}
+                          {touch.advice && <Sparkles className="w-3 h-3 text-indigo-500" />}
                         </span>
                       ))}
                     </div>
@@ -6133,6 +6181,123 @@ function NetworkingView({
               >
                 <Copy className="w-4 h-4" />
                 Copy to Clipboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Touch Detail Modal */}
+      {editingTouch && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Networking Touch Details</h3>
+              <button
+                onClick={() => { setEditingTouch(null); setEditingTouchDate(null); }}
+                className="p-1 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* Person & Company Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center justify-center w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full">
+                    {getTouchTypeIcon(editingTouch.type)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{editingTouch.personName}</p>
+                    <p className="text-sm text-gray-600">{editingTouch.company}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                    {editingTouch.type}
+                  </span>
+                  {editingTouch.channel && (
+                    <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">
+                      {editingTouch.channel}
+                    </span>
+                  )}
+                  <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">
+                    {new Date(editingTouchDate).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={editingTouch.notes || ''}
+                  onChange={(e) => setEditingTouch({ ...editingTouch, notes: e.target.value })}
+                  placeholder="What did you discuss?"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  rows={2}
+                />
+              </div>
+
+              {/* Advice - The key new field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  Advice Received
+                </label>
+                <textarea
+                  value={editingTouch.advice || ''}
+                  onChange={(e) => setEditingTouch({ ...editingTouch, advice: e.target.value })}
+                  placeholder="What advice did this person give you? Key insights, recommendations, referrals..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  rows={4}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Record valuable advice, job leads, referrals, or insights shared during this interaction.
+                </p>
+              </div>
+
+              {/* Outcome */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Outcome</label>
+                <select
+                  value={editingTouch.outcome || ''}
+                  onChange={(e) => setEditingTouch({ ...editingTouch, outcome: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Select outcome...</option>
+                  <option value="Positive - Got referral">Positive - Got referral</option>
+                  <option value="Positive - Got advice">Positive - Got advice</option>
+                  <option value="Positive - Made connection">Positive - Made connection</option>
+                  <option value="Neutral - Good conversation">Neutral - Good conversation</option>
+                  <option value="Neutral - No response yet">Neutral - No response yet</option>
+                  <option value="Follow-up needed">Follow-up needed</option>
+                </select>
+              </div>
+
+              {/* Follow-up Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Follow-up Date</label>
+                <input
+                  type="date"
+                  value={editingTouch.followUpDate || ''}
+                  onChange={(e) => setEditingTouch({ ...editingTouch, followUpDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => { setEditingTouch(null); setEditingTouchDate(null); }}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveTouchEdits}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Save Changes
               </button>
             </div>
           </div>
