@@ -1,10 +1,171 @@
 @import "tailwindcss";
 
+/* Theme CSS Variables */
+:root {
+  --bg-primary: #f9fafb;      /* gray-50 */
+  --bg-secondary: #ffffff;     /* white */
+  --bg-tertiary: #f3f4f6;      /* gray-100 */
+  --text-primary: #111827;     /* gray-900 */
+  --text-secondary: #4b5563;   /* gray-600 */
+  --text-muted: #6b7280;       /* gray-500 */
+  --border-color: #e5e7eb;     /* gray-200 */
+  --border-light: #f3f4f6;     /* gray-100 */
+  --hover-bg: #f9fafb;         /* gray-50 */
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  --bg-primary: #111827;       /* gray-900 */
+  --bg-secondary: #1f2937;     /* gray-800 */
+  --bg-tertiary: #374151;      /* gray-700 */
+  --text-primary: #f9fafb;     /* gray-50 */
+  --text-secondary: #d1d5db;   /* gray-300 */
+  --text-muted: #9ca3af;       /* gray-400 */
+  --border-color: #374151;     /* gray-700 */
+  --border-light: #1f2937;     /* gray-800 */
+  --hover-bg: #374151;         /* gray-700 */
+  --card-bg: #1f2937;          /* gray-800 */
+  --input-bg: #374151;         /* gray-700 */
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* Dark mode overrides for common elements */
+.dark .bg-white {
+  background-color: var(--bg-secondary) !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: var(--bg-primary) !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.dark .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-gray-800 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-gray-500 {
+  color: var(--text-muted) !important;
+}
+
+.dark .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+.dark .border-gray-300 {
+  border-color: var(--border-color) !important;
+}
+
+.dark .border-gray-100 {
+  border-color: var(--border-light) !important;
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+.dark .hover\:bg-gray-100:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+/* Dark mode for inputs and form elements */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Dark mode for modals */
+.dark .fixed.inset-0 > div > div {
+  background-color: var(--bg-secondary);
+}
+
+/* Dark mode for specific accent backgrounds */
+.dark .bg-indigo-50,
+.dark .bg-purple-50,
+.dark .bg-blue-50,
+.dark .bg-green-50,
+.dark .bg-yellow-50,
+.dark .bg-red-50,
+.dark .bg-orange-50 {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.dark .from-purple-50,
+.dark .to-indigo-50,
+.dark .from-indigo-50 {
+  --tw-gradient-from: rgba(99, 102, 241, 0.1) !important;
+  --tw-gradient-to: rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Tables in dark mode */
+.dark table {
+  background-color: var(--bg-secondary);
+}
+
+.dark th {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
+
+.dark td {
+  border-color: var(--border-color) !important;
+}
+
+.dark tr:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

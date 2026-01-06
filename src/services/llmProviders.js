@@ -30,12 +30,12 @@ export const MODEL_OPTIONS = {
     { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', tier: 'budget', desc: 'Cheapest Claude' }
   ],
   gemini: [
-    { id: 'gemini-3.0-pro', name: 'Gemini 3.0 Pro', tier: 'premium', desc: 'Most advanced Gemini model' },
-    { id: 'gemini-2.5-pro-preview-05-06', name: 'Gemini 2.5 Pro', tier: 'standard', desc: 'Most capable Gemini' },
-    { id: 'gemini-2.5-flash-preview-05-20', name: 'Gemini 2.5 Flash', tier: 'cheap', desc: 'Fast & smart (Recommended)' },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', tier: 'cheap', desc: 'Fast multimodal' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', tier: 'standard', desc: 'Previous pro model' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', tier: 'budget', desc: 'Budget option' }
+    { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', tier: 'premium', desc: 'Most advanced Gemini model' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', tier: 'standard', desc: 'Fast & powerful (Recommended)' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', tier: 'standard', desc: 'Fast multimodal' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', tier: 'standard', desc: 'Capable stable model' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', tier: 'cheap', desc: 'Fast and efficient' },
+    { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B', tier: 'budget', desc: 'Cheapest option' }
   ],
   ollama: [
     { id: 'llama3.2', name: 'Llama 3.2', tier: 'free', desc: 'Latest Llama (Recommended)' },
@@ -67,7 +67,7 @@ export const PROVIDER_CONFIG = {
   [LLM_PROVIDERS.GEMINI]: {
     name: 'Google Gemini',
     models: MODEL_OPTIONS.gemini.map(m => m.id),
-    defaultModel: 'gemini-2.5-flash-preview-05-20',
+    defaultModel: 'gemini-3-flash-preview',
     requiresApiKey: true,
     apiKeyName: 'GEMINI_API_KEY'
   },

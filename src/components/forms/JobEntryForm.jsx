@@ -31,8 +31,13 @@ export default function JobEntryForm({ resumeVersions, onSubmit, onCancel, initi
       const messages = createJobParserPrompt(autoFillText)
       const response = await callLLM(llmSettings, messages)
 
-      // Parse the JSON response
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      // Parse the JSON response - handle markdown code blocks
+      let jsonStr = response
+      const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1]
+      }
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0])
 

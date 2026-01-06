@@ -5,4 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    port: 5173,
+    strictPort: true,
+    hmr: false, // Disable HMR to avoid websocket issues in WSL/Firefox
+  },
 })

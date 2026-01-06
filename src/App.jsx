@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid'
 // jsPDF and docx are now dynamically imported when needed (code splitting)
 import { saveAs } from 'file-saver'
 
+// Backend API integration
+import { api, applicationsApi, resumesApi, companiesApi } from './services/api'
+
 // Lazy load heavy components for code splitting
 const LazyDashboard = lazy(() => import('./components/views/Dashboard'))
 const LazyAIJobMatcher = lazy(() => import('./components/AIJobMatcher'))
@@ -50,7 +53,10 @@ import {
   Award,
   HelpCircle,
   Key,
-  Globe
+  Globe,
+  Cloud,
+  Sun,
+  Moon
 } from 'lucide-react'
 // AIJobMatcher is lazy loaded above as LazyAIJobMatcher
 import { APISetupGuide } from './components/ui'
@@ -535,7 +541,8 @@ const STORAGE_KEYS = {
   networkingTouches: 'pharma_job_tracker_networking_touches',
   networkingStats: 'pharma_job_tracker_networking_stats',
   outreachTemplates: 'pharma_job_tracker_outreach_templates',
-  followUpCadences: 'pharma_job_tracker_followup_cadences'
+  followUpCadences: 'pharma_job_tracker_followup_cadences',
+  passedJobs: 'pharma_job_tracker_passed_jobs'
 }
 
 // Target Company Categories
@@ -629,6 +636,26 @@ function saveTargetCompanies(companies) {
   }
 }
 
+function loadPassedJobs() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.passedJobs)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (error) {
+    console.error('Error loading passed jobs:', error)
+  }
+  return null
+}
+
+function savePassedJobs(jobs) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.passedJobs, JSON.stringify(jobs))
+  } catch (error) {
+    console.error('Error saving passed jobs:', error)
+  }
+}
+
 function loadNetworkingTouches() {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.networkingTouches)
@@ -689,12 +716,14 @@ function saveOutreachTemplates(templates) {
   }
 }
 
-function exportToJSON(applications, resumeVersions) {
+function exportToJSON(applications, resumeVersions, passedJobs = [], targetCompanies = []) {
   const data = {
     exportDate: new Date().toISOString(),
-    version: '1.0',
+    version: '1.1',
     applications,
-    resumeVersions
+    resumeVersions,
+    passedJobs,
+    targetCompanies
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -1400,8 +1429,17 @@ function JobEntryForm({ resumeVersions, onSubmit, onCancel, initialData = null, 
       const messages = createJobParserPrompt(autoFillText)
       const response = await callLLM(llmSettings, messages)
 
-      // Parse the JSON response
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      console.log('Raw LLM response:', response)
+
+      // Parse the JSON response - handle markdown code blocks
+      let jsonStr = response
+      const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1]
+        console.log('Extracted from code block:', jsonStr)
+      }
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/)
+      console.log('JSON match:', jsonMatch ? jsonMatch[0].substring(0, 200) : 'null')
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0])
 
@@ -1436,6 +1474,7 @@ function JobEntryForm({ resumeVersions, onSubmit, onCancel, initialData = null, 
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+    console.log('Form change:', name, value) // Debug log
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -2457,6 +2496,61 @@ function ApplicationDetailModal({ application, resumeVersions, onClose, onSave, 
   const [isResearchingCompany, setIsResearchingCompany] = useState(false)
   const [researchError, setResearchError] = useState(null)
 
+  // Timeline editing state
+  const [editingTimelineIdx, setEditingTimelineIdx] = useState(null)
+  const [editingTimelineData, setEditingTimelineData] = useState({ status: '', date: '', notes: '' })
+  const [statusHistory, setStatusHistory] = useState(application?.statusHistory || [])
+
+  // Timeline editing functions
+  const handleEditTimelineEntry = (idx) => {
+    const entry = statusHistory[idx]
+    setEditingTimelineIdx(idx)
+    setEditingTimelineData({
+      status: entry.status,
+      date: entry.date?.split('T')[0] || '',
+      notes: entry.notes || ''
+    })
+  }
+
+  const handleSaveTimelineEntry = () => {
+    const updatedHistory = [...statusHistory]
+    updatedHistory[editingTimelineIdx] = {
+      ...updatedHistory[editingTimelineIdx],
+      status: editingTimelineData.status,
+      date: new Date(editingTimelineData.date).toISOString(),
+      notes: editingTimelineData.notes
+    }
+    setStatusHistory(updatedHistory)
+    setEditingTimelineIdx(null)
+    // Update the application
+    onSave({ ...application, statusHistory: updatedHistory, status: updatedHistory[updatedHistory.length - 1].status })
+  }
+
+  const handleDeleteTimelineEntry = (idx) => {
+    if (!confirm('Delete this timeline entry?')) return
+    const updatedHistory = statusHistory.filter((_, i) => i !== idx)
+    setStatusHistory(updatedHistory)
+    // Update the application with new status from last entry
+    const newStatus = updatedHistory.length > 0 ? updatedHistory[updatedHistory.length - 1].status : 'Applied'
+    onSave({ ...application, statusHistory: updatedHistory, status: newStatus })
+  }
+
+  const handleAddTimelineEntry = () => {
+    const newEntry = {
+      status: 'Applied',
+      date: new Date().toISOString(),
+      notes: ''
+    }
+    const updatedHistory = [...statusHistory, newEntry]
+    setStatusHistory(updatedHistory)
+    setEditingTimelineIdx(updatedHistory.length - 1)
+    setEditingTimelineData({
+      status: newEntry.status,
+      date: new Date().toISOString().split('T')[0],
+      notes: ''
+    })
+  }
+
   // AI Company Research function
   const handleAICompanyResearch = async () => {
     if (!llmSettings) {
@@ -3447,31 +3541,118 @@ Provide comprehensive research to help me prepare for this role.`
             {/* Timeline Tab */}
             {activeTab === 'timeline' && (
               <div className="space-y-4">
-                <h3 className="font-medium text-gray-900">Status History</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-medium text-gray-900">Status History</h3>
+                  <button
+                    onClick={handleAddTimelineEntry}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Entry
+                  </button>
+                </div>
                 <div className="relative">
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
                   <div className="space-y-4">
-                    {application.statusHistory?.map((entry, idx) => (
+                    {statusHistory?.map((entry, idx) => (
                       <div key={idx} className="relative flex gap-4 pl-10">
                         <div className={`absolute left-2.5 w-3 h-3 rounded-full border-2 ${
-                          idx === application.statusHistory.length - 1
+                          idx === statusHistory.length - 1
                             ? 'bg-indigo-600 border-indigo-600'
                             : 'bg-white border-gray-300'
                         }`} />
-                        <div className="flex-1 bg-gray-50 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(entry.status)}`}>
-                              {entry.status}
-                            </span>
-                            <span className="text-sm text-gray-500">{formatDate(entry.date)}</span>
+                        {editingTimelineIdx === idx ? (
+                          <div className="flex-1 bg-white border border-indigo-200 rounded-lg p-3 space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                  value={editingTimelineData.status}
+                                  onChange={(e) => setEditingTimelineData(prev => ({ ...prev, status: e.target.value }))}
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                                >
+                                  <option value="Applied">Applied</option>
+                                  <option value="Screening">Screening</option>
+                                  <option value="Phone Interview">Phone Interview</option>
+                                  <option value="Technical Interview">Technical Interview</option>
+                                  <option value="Onsite Interview">Onsite Interview</option>
+                                  <option value="Final Round">Final Round</option>
+                                  <option value="Offer">Offer</option>
+                                  <option value="Accepted">Accepted</option>
+                                  <option value="Rejected">Rejected</option>
+                                  <option value="Withdrawn">Withdrawn</option>
+                                  <option value="No Response">No Response</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                                <input
+                                  type="date"
+                                  value={editingTimelineData.date}
+                                  onChange={(e) => setEditingTimelineData(prev => ({ ...prev, date: e.target.value }))}
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                              <input
+                                type="text"
+                                value={editingTimelineData.notes}
+                                onChange={(e) => setEditingTimelineData(prev => ({ ...prev, notes: e.target.value }))}
+                                placeholder="Optional notes..."
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleSaveTimelineEntry}
+                                className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingTimelineIdx(null)}
+                                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
-                          {entry.notes && (
-                            <p className="text-sm text-gray-600 mt-2">{entry.notes}</p>
-                          )}
-                        </div>
+                        ) : (
+                          <div className="flex-1 bg-gray-50 rounded-lg p-3 group">
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(entry.status)}`}>
+                                {entry.status}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">{formatDate(entry.date)}</span>
+                                <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                  <button
+                                    onClick={() => handleEditTimelineEntry(idx)}
+                                    className="p-1 text-gray-400 hover:text-indigo-600"
+                                    title="Edit"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTimelineEntry(idx)}
+                                    className="p-1 text-gray-400 hover:text-red-600"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            {entry.notes && (
+                              <p className="text-sm text-gray-600 mt-2">{entry.notes}</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
-                    {(!application.statusHistory || application.statusHistory.length === 0) && (
+                    {(!statusHistory || statusHistory.length === 0) && (
                       <p className="text-gray-500 text-center py-8">No status history yet</p>
                     )}
                   </div>
@@ -4176,7 +4357,7 @@ function ResumeVersionManager({ resumeVersions, applications, onAddVersion, onEd
 const TAG_OPTIONS = ['Dream Job', 'High Priority', 'Backup', 'Referral', 'Remote OK', 'Top Choice', 'Follow Up']
 
 // Settings Component
-function SettingsPanel({ applications, resumeVersions, onClearData, onClose, onExport, onImport, llmSettings, onLlmSettingsChange, onOpenSetupGuide }) {
+function SettingsPanel({ applications, resumeVersions, targetCompanies, onClearData, onClose, onExport, onImport, llmSettings, onLlmSettingsChange, onOpenSetupGuide, onMigrateToCloud }) {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [lastBackup, setLastBackup] = useState(() => localStorage.getItem('pharma_job_tracker_last_backup'))
   const [mountTime] = useState(() => Date.now()) // Capture time once on mount
@@ -4456,6 +4637,23 @@ function SettingsPanel({ applications, resumeVersions, onClearData, onClose, onE
                   <span className="font-medium">{storageUsed()} KB</span>
                 </div>
               </div>
+            </div>
+
+            {/* Cloud Sync */}
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-blue-500" />
+                Cloud Storage
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Your data is automatically synced to the cloud. Use the button below to migrate any existing local data.
+              </p>
+              <button
+                onClick={onMigrateToCloud}
+                className="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                Migrate Local Data to Cloud ({applications.length} apps, {resumeVersions.length} resumes, {targetCompanies?.length || 0} companies)
+              </button>
             </div>
 
             {/* Clear Data */}
@@ -6180,6 +6378,1014 @@ I just applied for the {{roleTitle}} position at {{companyName}}...`}
   )
 }
 
+// Job Search Strategy View - Game plan and timeline for job search
+function StrategyView({ applications, showToast, llmSettings }) {
+  // Weekly checklist state
+  const getWeekId = () => {
+    const now = new Date()
+    const startOfYear = new Date(now.getFullYear(), 0, 1)
+    const weekNum = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7)
+    return `${now.getFullYear()}-W${weekNum}`
+  }
+
+  const [currentWeekId, setCurrentWeekId] = useState(getWeekId())
+  const [weeklyChecklist, setWeeklyChecklist] = useState(() => {
+    const saved = localStorage.getItem(`strategy_checklist_${getWeekId()}`)
+    return saved ? JSON.parse(saved) : {}
+  })
+  const [phaseGoals, setPhaseGoals] = useState(() => {
+    const saved = localStorage.getItem('strategy_phase_goals')
+    return saved ? JSON.parse(saved) : {}
+  })
+  const [aiInsights, setAiInsights] = useState(null)
+  const [loadingInsights, setLoadingInsights] = useState(false)
+
+  // Save checklist to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem(`strategy_checklist_${currentWeekId}`, JSON.stringify(weeklyChecklist))
+  }, [weeklyChecklist, currentWeekId])
+
+  // Save phase goals to localStorage
+  useEffect(() => {
+    localStorage.setItem('strategy_phase_goals', JSON.stringify(phaseGoals))
+  }, [phaseGoals])
+
+  // Check for week change
+  useEffect(() => {
+    const checkWeek = () => {
+      const newWeekId = getWeekId()
+      if (newWeekId !== currentWeekId) {
+        setCurrentWeekId(newWeekId)
+        setWeeklyChecklist({})
+        setAiInsights(null)
+      }
+    }
+    const interval = setInterval(checkWeek, 60000) // Check every minute
+    return () => clearInterval(interval)
+  }, [currentWeekId])
+
+  // User's specific situation - AGGRESSIVE STRATEGY
+  const STRATEGY_CONFIG = {
+    lastDayOfWork: new Date('2026-03-01'),
+    targetOfferDate: new Date('2026-06-01'), // 3 months after layoff - AGGRESSIVE
+    severanceWeeks: 18,
+    retentionBonusWeeks: 8,
+    vacationPayoutWeeks: 2,
+    stockWeeks: 1.5,
+    bonusWeeks: 7,
+    currentRole: 'Associate Director',
+    targetRoles: ['Director', 'Associate Director', 'Senior Manager', 'Senior Scientist'], // Willing to step down
+    minSalary: 150000, // Floor - won't go below this
+    geographic: 'NATIONWIDE', // Looking everywhere from day 1
+    targetIndustries: ['Pharma', 'Biotech', 'CDMO/CMO', 'Medical Device', 'CRO', 'Diagnostics']
+  }
+
+  const today = new Date()
+  const totalRunwayWeeks = STRATEGY_CONFIG.severanceWeeks + STRATEGY_CONFIG.retentionBonusWeeks +
+    STRATEGY_CONFIG.vacationPayoutWeeks + STRATEGY_CONFIG.stockWeeks + STRATEGY_CONFIG.bonusWeeks
+
+  const runwayEndDate = new Date(STRATEGY_CONFIG.lastDayOfWork)
+  runwayEndDate.setDate(runwayEndDate.getDate() + (totalRunwayWeeks * 7))
+
+  const daysUntilLayoff = Math.ceil((STRATEGY_CONFIG.lastDayOfWork - today) / (1000 * 60 * 60 * 24))
+  const daysUntilTarget = Math.ceil((STRATEGY_CONFIG.targetOfferDate - today) / (1000 * 60 * 60 * 24))
+  const daysUntilRunwayEnd = Math.ceil((runwayEndDate - today) / (1000 * 60 * 60 * 24))
+  const weeksUntilLayoff = Math.ceil(daysUntilLayoff / 7)
+
+  // Calculate current phase - ACCELERATED TIMELINE
+  const getCurrentPhase = () => {
+    if (today < STRATEGY_CONFIG.lastDayOfWork) return 1
+    const weeksAfterLayoff = Math.ceil((today - STRATEGY_CONFIG.lastDayOfWork) / (1000 * 60 * 60 * 24 * 7))
+    if (weeksAfterLayoff <= 4) return 2  // First month - BLITZ
+    if (weeksAfterLayoff <= 8) return 3  // Second month - INTENSIFY
+    if (weeksAfterLayoff <= 12) return 4 // Third month - CLOSE DEALS
+    return 5 // Extended if needed
+  }
+
+  const currentPhase = getCurrentPhase()
+
+  // AGGRESSIVE Phases - Compressed 3-month timeline
+  const phases = [
+    {
+      id: 1,
+      name: 'PRE-LAYOFF BLITZ',
+      dateRange: 'Jan 3 - Mar 1, 2026',
+      weeks: '8 weeks',
+      status: currentPhase === 1 ? 'active' : currentPhase > 1 ? 'completed' : 'upcoming',
+      priority: 'CRITICAL',
+      goals: [
+        'Apply to 10+ positions per week NOW',
+        'Target ALL major hubs: Boston, SF, SD, NJ, RTP',
+        'Reach out to 10+ network contacts/week',
+        'Contact recruiters at top 20 target companies',
+        'Update LinkedIn to "Open to Work" (visible to recruiters)',
+        'Set up alerts on LinkedIn, Indeed, BioSpace, BioPharmaGuy'
+      ],
+      weeklyTargets: {
+        applications: 10,
+        networkingContacts: 10,
+        recruiterOutreach: 5,
+        companyResearch: 10
+      }
+    },
+    {
+      id: 2,
+      name: 'MONTH 1: ALL-OUT BLITZ',
+      dateRange: 'Mar 1 - Apr 1, 2026',
+      weeks: '4 weeks',
+      status: currentPhase === 2 ? 'active' : currentPhase > 2 ? 'completed' : 'upcoming',
+      priority: 'CRITICAL',
+      goals: [
+        'Apply to 15-20 positions per week',
+        'Schedule 2-3 informational interviews/week',
+        'Follow up on EVERY application after 5 days',
+        'Work with 3-5 recruiters actively',
+        'Apply to Senior Scientist roles at top companies',
+        'Be ready to fly out for interviews anywhere'
+      ],
+      weeklyTargets: {
+        applications: 18,
+        networkingContacts: 15,
+        followUps: 10,
+        interviews: 3
+      }
+    },
+    {
+      id: 3,
+      name: 'MONTH 2: INTENSIFY & CONVERT',
+      dateRange: 'Apr 1 - May 1, 2026',
+      weeks: '4 weeks',
+      status: currentPhase === 3 ? 'active' : currentPhase > 3 ? 'completed' : 'upcoming',
+      priority: 'CRITICAL',
+      goals: [
+        'Maintain 15+ applications per week',
+        'Push all active conversations to next stage',
+        'Request feedback on any rejections',
+        'Double down on companies showing interest',
+        'Negotiate any offers - don\'t accept below $150k',
+        'Be prepared to relocate within 30 days'
+      ],
+      weeklyTargets: {
+        applications: 15,
+        networkingContacts: 10,
+        followUps: 15,
+        interviews: 5
+      }
+    },
+    {
+      id: 4,
+      name: 'MONTH 3: CLOSE THE DEAL',
+      dateRange: 'May 1 - Jun 1, 2026',
+      weeks: '4 weeks',
+      status: currentPhase === 4 ? 'active' : currentPhase > 4 ? 'completed' : 'upcoming',
+      priority: 'MAXIMUM',
+      goals: [
+        'Convert interviews to offers',
+        'Negotiate hard but be ready to accept',
+        'Keep applying - don\'t slow down until signed offer',
+        'Consider contract roles if no FTE offers',
+        'Expand to adjacent industries if needed',
+        'Target: SIGNED OFFER by June 1'
+      ],
+      weeklyTargets: {
+        applications: 12,
+        networkingContacts: 10,
+        negotiations: 2,
+        offers: 1
+      }
+    },
+    {
+      id: 5,
+      name: 'EXTENDED: PLAN B',
+      dateRange: 'Jun 1+',
+      weeks: 'If needed',
+      status: currentPhase === 5 ? 'active' : 'upcoming',
+      priority: 'CONTINGENCY',
+      goals: [
+        'Contract/consulting while continuing search',
+        'Consider relocation to any major hub',
+        'Expand to all life sciences roles',
+        'Activate every remaining network contact',
+        'Consider temporary step down to get foot in door',
+        'Maintain $150k minimum floor'
+      ],
+      weeklyTargets: {
+        applications: 20,
+        networkingContacts: 20,
+        contractApps: 5
+      }
+    }
+  ]
+
+  // Current week's action items based on phase - AGGRESSIVE
+  const getCurrentActions = () => {
+    const phase = phases[currentPhase - 1]
+    const weekOfPhase = currentPhase === 1 ? (8 - weeksUntilLayoff + 1) : 1
+
+    const baseActions = [
+      { id: 1, text: `APPLY TO ${phase.weeklyTargets.applications}+ JOBS THIS WEEK`, priority: 'critical', type: 'applications' },
+      { id: 2, text: `Message ${phase.weeklyTargets.networkingContacts}+ people on LinkedIn`, priority: 'critical', type: 'networking' },
+      { id: 3, text: 'Contact 3+ recruiters at target companies', priority: 'high', type: 'networking' },
+      { id: 4, text: 'Follow up on ALL apps older than 5 days', priority: 'high', type: 'followup' },
+      { id: 5, text: 'Search jobs in Boston, SF, San Diego, NJ, RTP', priority: 'high', type: 'applications' },
+      { id: 6, text: 'Apply to Senior Scientist roles at top pharma companies', priority: 'high', type: 'applications' }
+    ]
+
+    if (currentPhase === 1) {
+      baseActions.push(
+        { id: 7, text: 'Set LinkedIn to "Open to Work" (recruiters only)', priority: 'critical', type: 'profile' },
+        { id: 8, text: 'Set up job alerts on LinkedIn, Indeed, BioSpace', priority: 'high', type: 'research' },
+        { id: 9, text: 'Reach out to former colleagues about opportunities', priority: 'high', type: 'networking' }
+      )
+    } else if (currentPhase >= 2) {
+      baseActions.push(
+        { id: 7, text: 'Schedule informational interviews', priority: 'high', type: 'networking' },
+        { id: 8, text: 'Prepare for and crush every interview', priority: 'critical', type: 'interviews' }
+      )
+    }
+
+    return baseActions
+  }
+
+  // Calculate stats
+  const thisWeekApps = applications.filter(app => {
+    const appDate = new Date(app.dateApplied)
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    return appDate >= weekAgo
+  }).length
+
+  const activeApps = applications.filter(app =>
+    !['Rejected', 'Withdrawn', 'Offer', 'Accepted'].includes(app.status)
+  ).length
+
+  const interviewsScheduled = applications.filter(app =>
+    ['Phone Interview', 'Technical Interview', 'Onsite Interview', 'Final Round'].includes(app.status)
+  ).length
+
+  // Get weekly application breakdown by status
+  const getWeeklyBreakdown = () => {
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+
+    const weekApps = applications.filter(app => {
+      const appDate = new Date(app.dateApplied)
+      return appDate >= weekAgo
+    })
+
+    return {
+      total: weekApps.length,
+      byStatus: weekApps.reduce((acc, app) => {
+        acc[app.status] = (acc[app.status] || 0) + 1
+        return acc
+      }, {}),
+      byCompany: weekApps.map(app => ({ company: app.company, title: app.title, status: app.status }))
+    }
+  }
+
+  // Gemini API call for weekly insights
+  const fetchWeeklyInsights = async () => {
+    if (!llmSettings?.geminiKey) {
+      showToast('Please configure Gemini API key in Settings', 'error')
+      return
+    }
+
+    setLoadingInsights(true)
+    const weeklyData = getWeeklyBreakdown()
+    const phase = phases[currentPhase - 1]
+
+    const prompt = `You are a job search coach. Analyze this week's job search progress and provide brief, actionable feedback.
+
+WEEKLY STATS:
+- Applications submitted this week: ${weeklyData.total}
+- Weekly target: ${phase.weeklyTargets.applications}
+- Applications by status: ${JSON.stringify(weeklyData.byStatus)}
+- Total applications overall: ${applications.length}
+- Active interviews: ${interviewsScheduled}
+- Days until target offer date (June 1, 2026): ${daysUntilTarget}
+- Current phase: ${phase.name}
+
+RECENT APPLICATIONS:
+${weeklyData.byCompany.slice(0, 10).map(a => `- ${a.company}: ${a.title} (${a.status})`).join('\n')}
+
+Provide a JSON response with:
+{
+  "weeklyGrade": "A/B/C/D/F based on hitting targets",
+  "appsVsTarget": "X/Y format showing apps vs target",
+  "motivationalMessage": "1-2 sentence encouragement or push based on performance",
+  "topPriority": "The ONE most important thing to do this week",
+  "redFlags": ["Any concerns about the search strategy"],
+  "wins": ["Positive things to celebrate this week"]
+}
+
+Be direct and honest. If they're behind target, say so clearly.`
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${llmSettings.geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+          })
+        }
+      )
+
+      const data = await response.json()
+      if (data.error) {
+        throw new Error(data.error.message)
+      }
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+      if (text) {
+        // Parse JSON from response (handle markdown code blocks)
+        let jsonStr = text
+        const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+        if (codeBlockMatch) {
+          jsonStr = codeBlockMatch[1]
+        }
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const insights = JSON.parse(jsonMatch[0])
+          setAiInsights(insights)
+          showToast('Weekly insights updated!')
+        }
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error)
+      showToast(`AI Error: ${error.message}`, 'error')
+    } finally {
+      setLoadingInsights(false)
+    }
+  }
+
+  // Toggle checklist item
+  const toggleChecklistItem = (itemId) => {
+    setWeeklyChecklist(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }))
+  }
+
+  // Toggle phase goal
+  const togglePhaseGoal = (phaseId, goalIdx) => {
+    const key = `phase${phaseId}_goal${goalIdx}`
+    setPhaseGoals(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
+
+  // Get phase goal completion count
+  const getPhaseCompletion = (phaseId, totalGoals) => {
+    let completed = 0
+    for (let i = 0; i < totalGoals; i++) {
+      if (phaseGoals[`phase${phaseId}_goal${i}`]) completed++
+    }
+    return completed
+  }
+
+  // Weekly checklist items
+  const weeklyChecklistItems = [
+    { id: 'apps_10', label: `Submit ${phases[currentPhase-1]?.weeklyTargets?.applications || 10}+ job applications`, category: 'applications' },
+    { id: 'network_10', label: `Send ${phases[currentPhase-1]?.weeklyTargets?.networkingContacts || 10}+ networking messages`, category: 'networking' },
+    { id: 'followup', label: 'Follow up on all applications 5+ days old', category: 'followup' },
+    { id: 'recruiters', label: 'Contact 3+ recruiters at target companies', category: 'networking' },
+    { id: 'linkedin', label: 'Check LinkedIn daily for messages & alerts', category: 'admin' },
+    { id: 'jobboards', label: 'Search LinkedIn, Indeed, BioSpace, company sites', category: 'applications' },
+    { id: 'tracker', label: 'Update job tracker with all activity', category: 'admin' },
+    { id: 'research', label: 'Research 3+ target companies in depth', category: 'research' },
+    { id: 'resume', label: 'Tailor resume for top opportunities', category: 'applications' },
+    { id: 'interview_prep', label: 'Prepare for any scheduled interviews', category: 'interviews' }
+  ]
+
+  const checklistProgress = Object.values(weeklyChecklist).filter(Boolean).length
+  const checklistTotal = weeklyChecklistItems.length
+
+  return (
+    <div className="space-y-6">
+      {/* AGGRESSIVE Target Banner */}
+      <div className="bg-gradient-to-r from-red-600 to-orange-500 rounded-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">MISSION: OFFER BY JUNE 1</h2>
+            <p className="text-orange-100 mt-1">3-month aggressive timeline • $150k minimum • NATIONWIDE</p>
+          </div>
+          <div className="text-right bg-white/20 rounded-lg p-3">
+            <div className="text-4xl font-bold">{daysUntilTarget}</div>
+            <div className="text-orange-200 text-sm font-semibold">DAYS TO TARGET</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-5 gap-4 mt-6">
+          <div className="bg-white/10 rounded-lg p-3">
+            <div className="text-2xl font-bold">{daysUntilLayoff > 0 ? daysUntilLayoff : 0}</div>
+            <div className="text-xs text-orange-200">Days until layoff</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3">
+            <div className="text-2xl font-bold">{totalRunwayWeeks}</div>
+            <div className="text-xs text-orange-200">Weeks runway</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3">
+            <div className="text-2xl font-bold">{applications.length}</div>
+            <div className="text-xs text-orange-200">Applications</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3">
+            <div className="text-2xl font-bold">{interviewsScheduled}</div>
+            <div className="text-xs text-orange-200">Interviews</div>
+          </div>
+          <div className="bg-yellow-400/30 rounded-lg p-3 border border-yellow-300">
+            <div className="text-2xl font-bold">$150k</div>
+            <div className="text-xs text-yellow-200">MIN SALARY</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* This Week's Actions */}
+        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              This Week's Action Items
+            </h3>
+            <span className="text-sm text-gray-500">Phase {currentPhase}: {phases[currentPhase-1].name}</span>
+          </div>
+
+          <div className="space-y-3">
+            {getCurrentActions().map(action => (
+              <div key={action.id} className={`flex items-center gap-3 p-3 rounded-lg ${
+                action.priority === 'critical' ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
+              }`}>
+                <div className={`w-3 h-3 rounded-full ${
+                  action.priority === 'critical' ? 'bg-red-600 animate-pulse' :
+                  action.priority === 'high' ? 'bg-orange-500' : 'bg-yellow-500'
+                }`} />
+                <span className={`flex-1 ${action.priority === 'critical' ? 'font-semibold text-red-900' : 'text-gray-700'}`}>{action.text}</span>
+                <span className={`text-xs px-2 py-1 rounded ${
+                  action.type === 'applications' ? 'bg-indigo-100 text-indigo-700' :
+                  action.type === 'networking' ? 'bg-green-100 text-green-700' :
+                  action.type === 'followup' ? 'bg-orange-100 text-orange-700' :
+                  action.type === 'profile' ? 'bg-purple-100 text-purple-700' :
+                  action.type === 'interviews' ? 'bg-blue-100 text-blue-700' :
+                  action.type === 'research' ? 'bg-cyan-100 text-cyan-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {action.type}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Weekly Progress */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <h4 className="font-medium text-gray-900 mb-3">This Week's Progress</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                <div className="text-2xl font-bold text-indigo-600">{thisWeekApps}</div>
+                <div className="text-xs text-gray-600">Applications</div>
+                <div className="text-xs text-gray-400">Target: {phases[currentPhase-1].weeklyTargets.applications}</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{activeApps}</div>
+                <div className="text-xs text-gray-600">Active Pipeline</div>
+              </div>
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">{interviewsScheduled}</div>
+                <div className="text-xs text-gray-600">Interviews</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Breakdown */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Runway</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Severance</span>
+              <span className="font-medium">{STRATEGY_CONFIG.severanceWeeks} weeks</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Retention Bonus (15%)</span>
+              <span className="font-medium">{STRATEGY_CONFIG.retentionBonusWeeks} weeks</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Vacation Payout</span>
+              <span className="font-medium">{STRATEGY_CONFIG.vacationPayoutWeeks} weeks</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Stock Vesting</span>
+              <span className="font-medium">{STRATEGY_CONFIG.stockWeeks} weeks</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Pro-rated Bonus (66%)</span>
+              <span className="font-medium">{STRATEGY_CONFIG.bonusWeeks} weeks</span>
+            </div>
+            <div className="border-t pt-3 mt-3">
+              <div className="flex justify-between font-semibold">
+                <span>Total Runway</span>
+                <span className="text-indigo-600">{totalRunwayWeeks} weeks</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <span>Runway End Date</span>
+                <span>{runwayEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* AGGRESSIVE Target Reminder */}
+          <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300">
+            <div className="flex items-center gap-2 mb-2">
+              <Flame className="w-5 h-5 text-red-600" />
+              <span className="font-semibold text-red-800">AGGRESSIVE TARGET</span>
+            </div>
+            <p className="text-sm text-red-700 font-medium">
+              OFFER BY <strong>JUNE 1, 2026</strong> - 3 months from layoff. Looking NATIONWIDE. Willing to take Senior Scientist ($150k+). NO EXCUSES.
+            </p>
+          </div>
+
+          {/* Acceptable Roles */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="text-xs font-semibold text-blue-800 mb-2">ACCEPTABLE ROLES:</div>
+            <div className="flex flex-wrap gap-1">
+              {STRATEGY_CONFIG.targetRoles.map(role => (
+                <span key={role} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{role}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Phase Timeline */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Strategic Timeline - Check Off Your Progress</h3>
+        <div className="space-y-4">
+          {phases.map((phase, idx) => (
+            <div
+              key={phase.id}
+              className={`relative pl-8 pb-6 ${idx < phases.length - 1 ? 'border-l-2 border-gray-200' : ''} ${
+                phase.status === 'active' ? 'border-l-indigo-500' : ''
+              }`}
+            >
+              <div className={`absolute left-0 -translate-x-1/2 w-4 h-4 rounded-full border-2 ${
+                phase.status === 'completed' ? 'bg-green-500 border-green-500' :
+                phase.status === 'active' ? 'bg-indigo-500 border-indigo-500 ring-4 ring-indigo-100' :
+                'bg-white border-gray-300'
+              }`} />
+
+              <div className={`ml-4 p-4 rounded-lg ${
+                phase.status === 'active' ? 'bg-indigo-50 border border-indigo-200' : 'bg-gray-50'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <h4 className="font-semibold text-gray-900">Phase {phase.id}: {phase.name}</h4>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      phase.status === 'active' ? 'bg-indigo-600 text-white' :
+                      phase.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-200 text-gray-600'
+                    }`}>
+                      {phase.status === 'active' ? 'CURRENT' : phase.status.toUpperCase()}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      ({getPhaseCompletion(phase.id, phase.goals.length)}/{phase.goals.length} done)
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-500">{phase.dateRange} ({phase.weeks})</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+                  {phase.goals.map((goal, goalIdx) => {
+                    const isChecked = phaseGoals[`phase${phase.id}_goal${goalIdx}`] || false
+                    return (
+                      <label
+                        key={goalIdx}
+                        className={`flex items-start gap-2 text-sm p-2 rounded cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-green-50 border border-green-200'
+                            : 'hover:bg-gray-100 border border-transparent'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => togglePhaseGoal(phase.id, goalIdx)}
+                          className="w-4 h-4 mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        />
+                        <span className={isChecked ? 'line-through text-gray-400' : 'text-gray-700'}>
+                          {goal}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+
+                {phase.status === 'active' && (
+                  <div className="mt-4 pt-3 border-t border-indigo-200">
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="font-medium text-indigo-700">Weekly Targets:</span>
+                      <span className="text-gray-600">{phase.weeklyTargets.applications} applications</span>
+                      <span className="text-gray-600">{phase.weeklyTargets.networkingContacts} networking contacts</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tips & Reminders */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-indigo-600" />
+            Success Metrics
+          </h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Response Rate Goal</span>
+              <span className="font-medium">15-20%</span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Interview Conversion</span>
+              <span className="font-medium">30-40%</span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Offer Timeline</span>
+              <span className="font-medium">4-8 weeks from first contact</span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Networking ROI</span>
+              <span className="font-medium">70% of jobs through network</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border-2 border-indigo-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-indigo-600" />
+              WEEKLY CHECKLIST
+              <span className="text-sm font-normal text-gray-500">({currentWeekId})</span>
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="text-sm">
+                <span className="font-bold text-indigo-600">{checklistProgress}</span>
+                <span className="text-gray-500">/{checklistTotal}</span>
+              </div>
+              <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-600 transition-all duration-300"
+                  style={{ width: `${(checklistProgress / checklistTotal) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {weeklyChecklistItems.map(item => (
+              <label
+                key={item.id}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                  weeklyChecklist[item.id]
+                    ? 'bg-green-50 border border-green-200'
+                    : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={weeklyChecklist[item.id] || false}
+                  onChange={() => toggleChecklistItem(item.id)}
+                  className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className={`flex-1 ${weeklyChecklist[item.id] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                  {item.label}
+                </span>
+                <span className={`text-xs px-2 py-1 rounded ${
+                  item.category === 'applications' ? 'bg-indigo-100 text-indigo-700' :
+                  item.category === 'networking' ? 'bg-green-100 text-green-700' :
+                  item.category === 'followup' ? 'bg-orange-100 text-orange-700' :
+                  item.category === 'research' ? 'bg-cyan-100 text-cyan-700' :
+                  item.category === 'interviews' ? 'bg-purple-100 text-purple-700' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {item.category}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          {checklistProgress === checklistTotal && (
+            <div className="mt-4 p-3 bg-green-100 rounded-lg text-center border border-green-300">
+              <span className="text-sm font-bold text-green-800">ALL TASKS COMPLETE! Keep pushing forward!</span>
+            </div>
+          )}
+        </div>
+
+        {/* AI Weekly Insights */}
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-purple-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              AI Weekly Analysis
+            </h3>
+            <button
+              onClick={fetchWeeklyInsights}
+              disabled={loadingInsights}
+              className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loadingInsights ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Get Insights
+                </>
+              )}
+            </button>
+          </div>
+
+          {aiInsights ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className={`text-4xl font-bold ${
+                  aiInsights.weeklyGrade === 'A' ? 'text-green-600' :
+                  aiInsights.weeklyGrade === 'B' ? 'text-blue-600' :
+                  aiInsights.weeklyGrade === 'C' ? 'text-yellow-600' :
+                  aiInsights.weeklyGrade === 'D' ? 'text-orange-600' :
+                  'text-red-600'
+                }`}>
+                  {aiInsights.weeklyGrade}
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">
+                    Applications: {aiInsights.appsVsTarget}
+                  </div>
+                  <div className="text-sm text-gray-600">{aiInsights.motivationalMessage}</div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white rounded-lg border border-purple-200">
+                <div className="text-xs font-semibold text-purple-800 mb-1">TOP PRIORITY THIS WEEK:</div>
+                <div className="text-sm text-gray-800 font-medium">{aiInsights.topPriority}</div>
+              </div>
+
+              {aiInsights.wins && aiInsights.wins.length > 0 && (
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="text-xs font-semibold text-green-800 mb-2">WINS:</div>
+                  <ul className="text-sm text-green-700 space-y-1">
+                    {aiInsights.wins.map((win, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-green-500">✓</span>
+                        {win}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {aiInsights.redFlags && aiInsights.redFlags.length > 0 && (
+                <div className="p-3 bg-red-50 rounded-lg">
+                  <div className="text-xs font-semibold text-red-800 mb-2">WATCH OUT:</div>
+                  <ul className="text-sm text-red-700 space-y-1">
+                    {aiInsights.redFlags.map((flag, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                        {flag}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Sparkles className="w-12 h-12 mx-auto mb-3 text-purple-300" />
+              <p className="text-sm">Click "Get Insights" to analyze your weekly progress with Gemini AI</p>
+              <p className="text-xs mt-1 text-gray-400">Requires Gemini API key in Settings</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Passed Jobs View - Track jobs you've reviewed but decided not to apply to
+function PassedJobsView({ passedJobs, setPassedJobs, showToast }) {
+  const [isAddingJob, setIsAddingJob] = useState(false)
+  const [newJob, setNewJob] = useState({
+    company: '',
+    title: '',
+    url: '',
+    reason: '',
+    dateReviewed: new Date().toISOString().split('T')[0]
+  })
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const handleAddJob = () => {
+    if (!newJob.company || !newJob.title) {
+      showToast('Please enter company and title', 'error')
+      return
+    }
+
+    const job = {
+      ...newJob,
+      id: uuidv4(),
+      createdAt: new Date().toISOString()
+    }
+
+    setPassedJobs(prev => [job, ...prev])
+    setNewJob({
+      company: '',
+      title: '',
+      url: '',
+      reason: '',
+      dateReviewed: new Date().toISOString().split('T')[0]
+    })
+    setIsAddingJob(false)
+    showToast('Job added to passed list')
+  }
+
+  const handleDeleteJob = (id) => {
+    if (confirm('Remove this job from the passed list?')) {
+      setPassedJobs(prev => prev.filter(j => j.id !== id))
+      showToast('Job removed')
+    }
+  }
+
+  const filteredJobs = passedJobs.filter(job =>
+    job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (job.reason && job.reason.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Passed Jobs</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Track jobs you've reviewed but decided not to apply to, so you don't waste time looking at them again.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddingJob(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            <Plus className="w-4 h-4" />
+            Add Passed Job
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search passed jobs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
+          />
+        </div>
+
+        {/* Add Job Form */}
+        {isAddingJob && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-gray-900 mb-3">Add Passed Job</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
+                <input
+                  type="text"
+                  value={newJob.company}
+                  onChange={(e) => setNewJob(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="e.g., Pfizer"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
+                <input
+                  type="text"
+                  value={newJob.title}
+                  onChange={(e) => setNewJob(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Senior Scientist"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Job URL</label>
+                <input
+                  type="url"
+                  value={newJob.url}
+                  onChange={(e) => setNewJob(prev => ({ ...prev, url: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date Reviewed</label>
+                <input
+                  type="date"
+                  value={newJob.dateReviewed}
+                  onChange={(e) => setNewJob(prev => ({ ...prev, dateReviewed: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Passing</label>
+                <input
+                  type="text"
+                  value={newJob.reason}
+                  onChange={(e) => setNewJob(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="e.g., Too junior, wrong location, low salary..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setIsAddingJob(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddJob}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Add to Passed List
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Jobs List */}
+        {filteredJobs.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <XCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>{searchTerm ? 'No matching jobs found' : 'No passed jobs yet'}</p>
+            <p className="text-sm mt-1">Add jobs you've reviewed but decided not to apply to</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredJobs.map(job => (
+              <div key={job.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 group">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">{job.company}</span>
+                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-700">{job.title}</span>
+                    {job.url && (
+                      <a
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                    <span>Reviewed: {new Date(job.dateReviewed).toLocaleDateString()}</span>
+                    {job.reason && (
+                      <span className="text-orange-600">• {job.reason}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteJob(job.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove from list"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Summary */}
+        {passedJobs.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-gray-200 text-sm text-gray-500">
+            Total: {passedJobs.length} passed jobs
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Main App Component
 function App() {
   const [applications, setApplications] = useState([])
@@ -6188,6 +7394,7 @@ function App() {
   const [outreachTemplates, setOutreachTemplates] = useState([])
   const [networkingTouches, setNetworkingTouches] = useState([])
   const [networkingStats, setNetworkingStats] = useState({ currentStreak: 0, longestStreak: 0, totalTouches: 0, lastTouchDate: null })
+  const [passedJobs, setPassedJobs] = useState([]) // Jobs reviewed but not a good match
   const [toast, setToast] = useState(null)
   const [sortConfig, setSortConfig] = useState({ key: 'dateApplied', direction: 'desc' })
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -6223,8 +7430,29 @@ function App() {
     const dismissedTime = new Date(dismissed).getTime()
     return (Date.now() - dismissedTime) < 24 * 60 * 60 * 1000
   })
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('pharma_job_tracker_dark_mode')
+    if (saved !== null) return saved === 'true'
+    // Default to system preference
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
   const fileInputRef = useRef(null)
   const searchInputRef = useRef(null)
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('pharma_job_tracker_dark_mode', darkMode.toString())
+  }, [darkMode])
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev)
+  }
 
   // Handle welcome modal close
   const handleWelcomeClose = () => {
@@ -6550,8 +7778,15 @@ function App() {
 
     try {
       const response = await callLLM(llmSettings, messages)
-      // Parse JSON response
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      // Parse JSON response - handle markdown code blocks
+      let jsonStr = response
+      // Remove markdown code blocks if present
+      const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1]
+      }
+      // Extract JSON object
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0])
       }
@@ -6621,50 +7856,106 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Initialize data from localStorage or use sample data
+  // Initialize data from backend API (with localStorage fallback)
   useEffect(() => {
-    const storedApps = loadApplications()
-    const storedResumes = loadResumeVersions()
-    const storedCompanies = loadTargetCompanies()
-    const storedTemplates = loadOutreachTemplates()
-    const storedTouches = loadNetworkingTouches()
-    const storedStats = loadNetworkingStats()
+    async function loadFromBackend() {
+      try {
+        // Try loading from backend API first
+        const [appsData, resumesData, companiesData] = await Promise.all([
+          applicationsApi.list().catch(() => null),
+          resumesApi.list().catch(() => null),
+          companiesApi.list().catch(() => null)
+        ])
 
-    if (storedApps && storedApps.length > 0) {
-      setApplications(storedApps)
-    } else {
-      setApplications(SAMPLE_APPLICATIONS)
-      saveApplications(SAMPLE_APPLICATIONS)
+        // Use API data if available, otherwise fall back to localStorage
+        if (appsData && appsData.length > 0) {
+          setApplications(appsData)
+          saveApplications(appsData) // Cache locally
+        } else {
+          const storedApps = loadApplications()
+          if (storedApps && storedApps.length > 0) {
+            setApplications(storedApps)
+          } else {
+            setApplications([]) // Start fresh, no sample data
+          }
+        }
+
+        if (resumesData && resumesData.length > 0) {
+          setResumeVersions(resumesData)
+          saveResumeVersions(resumesData)
+        } else {
+          const storedResumes = loadResumeVersions()
+          if (storedResumes && storedResumes.length > 0) {
+            setResumeVersions(storedResumes)
+          } else {
+            setResumeVersions([])
+          }
+        }
+
+        if (companiesData && companiesData.length > 0) {
+          setTargetCompanies(companiesData)
+          saveTargetCompanies(companiesData)
+        } else {
+          const storedCompanies = loadTargetCompanies()
+          if (storedCompanies && storedCompanies.length > 0) {
+            setTargetCompanies(storedCompanies)
+          } else {
+            setTargetCompanies([])
+          }
+        }
+
+        // These still use localStorage only (not in backend)
+        const storedTemplates = loadOutreachTemplates()
+        const storedTouches = loadNetworkingTouches()
+        const storedStats = loadNetworkingStats()
+        const storedPassedJobs = loadPassedJobs()
+
+        if (storedTemplates && storedTemplates.length > 0) {
+          setOutreachTemplates(storedTemplates)
+        } else {
+          setOutreachTemplates(SAMPLE_OUTREACH_TEMPLATES)
+          saveOutreachTemplates(SAMPLE_OUTREACH_TEMPLATES)
+        }
+
+        if (storedTouches && storedTouches.length > 0) {
+          setNetworkingTouches(storedTouches)
+        }
+
+        if (storedStats) {
+          setNetworkingStats(storedStats)
+        }
+
+        if (storedPassedJobs && storedPassedJobs.length > 0) {
+          setPassedJobs(storedPassedJobs)
+        }
+
+        console.log('Data loaded from backend API')
+      } catch (error) {
+        console.error('Backend API not available, using localStorage:', error)
+        // Fall back to localStorage
+        const storedApps = loadApplications()
+        const storedResumes = loadResumeVersions()
+        const storedCompanies = loadTargetCompanies()
+        const storedTemplates = loadOutreachTemplates()
+        const storedTouches = loadNetworkingTouches()
+        const storedStats = loadNetworkingStats()
+        const storedPassedJobs = loadPassedJobs()
+
+        if (storedApps && storedApps.length > 0) setApplications(storedApps)
+        if (storedResumes && storedResumes.length > 0) setResumeVersions(storedResumes)
+        if (storedCompanies && storedCompanies.length > 0) setTargetCompanies(storedCompanies)
+        if (storedTemplates && storedTemplates.length > 0) {
+          setOutreachTemplates(storedTemplates)
+        } else {
+          setOutreachTemplates(SAMPLE_OUTREACH_TEMPLATES)
+        }
+        if (storedTouches && storedTouches.length > 0) setNetworkingTouches(storedTouches)
+        if (storedStats) setNetworkingStats(storedStats)
+        if (storedPassedJobs && storedPassedJobs.length > 0) setPassedJobs(storedPassedJobs)
+      }
     }
 
-    if (storedResumes && storedResumes.length > 0) {
-      setResumeVersions(storedResumes)
-    } else {
-      setResumeVersions(SAMPLE_RESUME_VERSIONS)
-      saveResumeVersions(SAMPLE_RESUME_VERSIONS)
-    }
-
-    if (storedCompanies && storedCompanies.length > 0) {
-      setTargetCompanies(storedCompanies)
-    } else {
-      setTargetCompanies(SAMPLE_TARGET_COMPANIES)
-      saveTargetCompanies(SAMPLE_TARGET_COMPANIES)
-    }
-
-    if (storedTemplates && storedTemplates.length > 0) {
-      setOutreachTemplates(storedTemplates)
-    } else {
-      setOutreachTemplates(SAMPLE_OUTREACH_TEMPLATES)
-      saveOutreachTemplates(SAMPLE_OUTREACH_TEMPLATES)
-    }
-
-    if (storedTouches && storedTouches.length > 0) {
-      setNetworkingTouches(storedTouches)
-    }
-
-    if (storedStats) {
-      setNetworkingStats(storedStats)
-    }
+    loadFromBackend()
   }, [])
 
   // Save to localStorage whenever data changes
@@ -6687,6 +7978,12 @@ function App() {
   }, [targetCompanies])
 
   useEffect(() => {
+    if (passedJobs.length > 0) {
+      savePassedJobs(passedJobs)
+    }
+  }, [passedJobs])
+
+  useEffect(() => {
     if (outreachTemplates.length > 0) {
       saveOutreachTemplates(outreachTemplates)
     }
@@ -6707,7 +8004,7 @@ function App() {
   }
 
   const handleExport = () => {
-    exportToJSON(applications, resumeVersions)
+    exportToJSON(applications, resumeVersions, passedJobs, targetCompanies)
     handleBackupComplete()
     showToast('Data exported successfully! Your backup is saved.')
   }
@@ -6730,7 +8027,45 @@ function App() {
     showToast('All data cleared', 'info')
   }
 
-  const handleAddApplication = (formData) => {
+  const handleMigrateToCloud = async () => {
+    if (!confirm('This will upload all your local data to the cloud database. Continue?')) return
+
+    let migrated = { apps: 0, resumes: 0, companies: 0 }
+
+    // Migrate applications
+    for (const app of applications) {
+      try {
+        await applicationsApi.create(app)
+        migrated.apps++
+      } catch (e) {
+        console.error('Failed to migrate application:', app.id, e)
+      }
+    }
+
+    // Migrate resumes
+    for (const resume of resumeVersions) {
+      try {
+        await resumesApi.create(resume)
+        migrated.resumes++
+      } catch (e) {
+        console.error('Failed to migrate resume:', resume.id, e)
+      }
+    }
+
+    // Migrate companies
+    for (const company of targetCompanies) {
+      try {
+        await companiesApi.create(company)
+        migrated.companies++
+      } catch (e) {
+        console.error('Failed to migrate company:', company.id, e)
+      }
+    }
+
+    showToast(`Migrated: ${migrated.apps} applications, ${migrated.resumes} resumes, ${migrated.companies} companies`)
+  }
+
+  const handleAddApplication = async (formData) => {
     const now = new Date().toISOString()
     const newApplication = {
       ...formData,
@@ -6752,22 +8087,32 @@ function App() {
       createdAt: now,
       updatedAt: now
     }
+    // Sync to backend
+    try {
+      await applicationsApi.create(newApplication)
+    } catch (e) {
+      console.error('Failed to sync new application to backend:', e)
+    }
     setApplications(prev => [newApplication, ...prev])
     setIsAddModalOpen(false)
     showToast('Application added successfully!')
   }
 
-  const handleEditApplication = (formData) => {
-    setApplications(prev => prev.map(app => {
-      if (app.id === editingApplication.id) {
-        return {
-          ...app,
-          ...formData,
-          updatedAt: new Date().toISOString()
-        }
-      }
-      return app
-    }))
+  const handleEditApplication = async (formData) => {
+    const updatedApp = {
+      ...editingApplication,
+      ...formData,
+      updatedAt: new Date().toISOString()
+    }
+    // Sync to backend
+    try {
+      await applicationsApi.update(editingApplication.id, updatedApp)
+    } catch (e) {
+      console.error('Failed to sync application update to backend:', e)
+    }
+    setApplications(prev => prev.map(app =>
+      app.id === editingApplication.id ? updatedApp : app
+    ))
     setEditingApplication(null)
     showToast('Application updated successfully!')
   }
@@ -6834,7 +8179,7 @@ function App() {
   }
 
   // Target Company Handlers
-  const handleAddCompany = (companyData) => {
+  const handleAddCompany = async (companyData) => {
     const now = new Date().toISOString()
     const newCompany = {
       ...companyData,
@@ -6853,28 +8198,44 @@ function App() {
       createdAt: now,
       updatedAt: now
     }
+    // Sync to backend
+    try {
+      await companiesApi.create(newCompany)
+    } catch (e) {
+      console.error('Failed to sync new company to backend:', e)
+    }
     setTargetCompanies(prev => [newCompany, ...prev])
     setIsAddCompanyModalOpen(false)
     showToast('Target company added!')
   }
 
-  const handleEditCompany = (companyData) => {
-    setTargetCompanies(prev => prev.map(company => {
-      if (company.id === editingCompany.id) {
-        return {
-          ...company,
-          ...companyData,
-          updatedAt: new Date().toISOString()
-        }
-      }
-      return company
-    }))
+  const handleEditCompany = async (companyData) => {
+    const updatedCompany = {
+      ...editingCompany,
+      ...companyData,
+      updatedAt: new Date().toISOString()
+    }
+    // Sync to backend
+    try {
+      await companiesApi.update(editingCompany.id, updatedCompany)
+    } catch (e) {
+      console.error('Failed to sync company update to backend:', e)
+    }
+    setTargetCompanies(prev => prev.map(company =>
+      company.id === editingCompany.id ? updatedCompany : company
+    ))
     setEditingCompany(null)
     showToast('Company updated!')
   }
 
-  const handleDeleteCompany = (companyId) => {
+  const handleDeleteCompany = async (companyId) => {
     if (confirm('Are you sure you want to delete this company?')) {
+      // Sync to backend
+      try {
+        await companiesApi.delete(companyId)
+      } catch (e) {
+        console.error('Failed to delete company from backend:', e)
+      }
       setTargetCompanies(prev => prev.filter(c => c.id !== companyId))
       showToast('Company deleted')
     }
@@ -6968,6 +8329,7 @@ function App() {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result)
+        let importedCounts = []
 
         if (data.applications && Array.isArray(data.applications)) {
           // Merge imported applications (avoid duplicates by ID)
@@ -6975,7 +8337,7 @@ function App() {
           const newApps = data.applications.filter(a => !existingIds.has(a.id))
           const mergedApps = [...applications, ...newApps]
           setApplications(mergedApps)
-          showToast(`Imported ${newApps.length} new applications!`)
+          if (newApps.length > 0) importedCounts.push(`${newApps.length} applications`)
         }
 
         if (data.resumeVersions && Array.isArray(data.resumeVersions)) {
@@ -6983,6 +8345,29 @@ function App() {
           const newVersions = data.resumeVersions.filter(r => !existingIds.has(r.id))
           const mergedVersions = [...resumeVersions, ...newVersions]
           setResumeVersions(mergedVersions)
+          if (newVersions.length > 0) importedCounts.push(`${newVersions.length} resumes`)
+        }
+
+        if (data.passedJobs && Array.isArray(data.passedJobs)) {
+          const existingIds = new Set(passedJobs.map(j => j.id))
+          const newPassed = data.passedJobs.filter(j => !existingIds.has(j.id))
+          const mergedPassed = [...passedJobs, ...newPassed]
+          setPassedJobs(mergedPassed)
+          if (newPassed.length > 0) importedCounts.push(`${newPassed.length} passed jobs`)
+        }
+
+        if (data.targetCompanies && Array.isArray(data.targetCompanies)) {
+          const existingIds = new Set(targetCompanies.map(c => c.id))
+          const newCompanies = data.targetCompanies.filter(c => !existingIds.has(c.id))
+          const mergedCompanies = [...targetCompanies, ...newCompanies]
+          setTargetCompanies(mergedCompanies)
+          if (newCompanies.length > 0) importedCounts.push(`${newCompanies.length} target companies`)
+        }
+
+        if (importedCounts.length > 0) {
+          showToast(`Imported: ${importedCounts.join(', ')}!`)
+        } else {
+          showToast('No new data to import (all items already exist)', 'info')
         }
       } catch (error) {
         console.error('Error importing file:', error)
@@ -7095,6 +8480,13 @@ function App() {
               >
                 <Target className="w-4 h-4" />
                 Fit Check
+              </button>
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
               <button
                 onClick={() => setIsSettingsOpen(true)}
@@ -7214,6 +8606,28 @@ function App() {
             <User className="w-4 h-4" />
             Networking
           </button>
+          <button
+            onClick={() => setActiveTab('passed')}
+            className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'passed'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <XCircle className="w-4 h-4" />
+            Passed ({passedJobs.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('strategy')}
+            className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'strategy'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            Strategy
+          </button>
         </div>
 
         {/* Stats Bar - only show on table and pipeline views */}
@@ -7281,15 +8695,33 @@ function App() {
           <ResumeVersionManager
             resumeVersions={resumeVersions}
             applications={applications}
-            onAddVersion={(version) => {
+            onAddVersion={async (version) => {
+              // Sync to backend
+              try {
+                await resumesApi.create(version)
+              } catch (e) {
+                console.error('Failed to sync new resume to backend:', e)
+              }
               setResumeVersions(prev => [...prev, version])
               showToast('Resume version added!')
             }}
-            onEditVersion={(version) => {
+            onEditVersion={async (version) => {
+              // Sync to backend
+              try {
+                await resumesApi.update(version.id, version)
+              } catch (e) {
+                console.error('Failed to sync resume update to backend:', e)
+              }
               setResumeVersions(prev => prev.map(v => v.id === version.id ? version : v))
               showToast('Resume version updated!')
             }}
-            onDeleteVersion={(versionId) => {
+            onDeleteVersion={async (versionId) => {
+              // Sync to backend
+              try {
+                await resumesApi.delete(versionId)
+              } catch (e) {
+                console.error('Failed to delete resume from backend:', e)
+              }
               setResumeVersions(prev => prev.filter(v => v.id !== versionId))
               showToast('Resume version deleted!')
             }}
@@ -7301,7 +8733,7 @@ function App() {
           <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div><span className="ml-3 text-gray-500">Loading AI Job Matcher...</span></div>}>
             <LazyAIJobMatcher
               resumeVersions={resumeVersions}
-              onAddApplication={(formData) => {
+              onAddApplication={async (formData) => {
                 const now = new Date().toISOString()
                 const newApplication = {
                   ...formData,
@@ -7322,6 +8754,12 @@ function App() {
                   tags: [],
                   createdAt: now,
                   updatedAt: now
+                }
+                // Sync to backend
+                try {
+                  await applicationsApi.create(newApplication)
+                } catch (e) {
+                  console.error('Failed to sync new application to backend:', e)
                 }
                 setApplications(prev => [newApplication, ...prev])
                 showToast('Job added to tracker!')
@@ -7357,6 +8795,24 @@ function App() {
             setNetworkingStats={setNetworkingStats}
             setOutreachTemplates={setOutreachTemplates}
             showToast={showToast}
+          />
+        )}
+
+        {/* Passed Jobs View */}
+        {activeTab === 'passed' && (
+          <PassedJobsView
+            passedJobs={passedJobs}
+            setPassedJobs={setPassedJobs}
+            showToast={showToast}
+          />
+        )}
+
+        {/* Strategy View */}
+        {activeTab === 'strategy' && (
+          <StrategyView
+            applications={applications}
+            showToast={showToast}
+            llmSettings={llmSettings}
           />
         )}
 
@@ -7524,14 +8980,24 @@ function App() {
           application={editingApplication}
           resumeVersions={resumeVersions}
           onClose={() => setEditingApplication(null)}
-          onSave={(updatedApp) => {
+          onSave={async (updatedApp) => {
+            try {
+              await applicationsApi.update(updatedApp.id, updatedApp)
+            } catch (e) {
+              console.error('Failed to sync to backend:', e)
+            }
             setApplications(prev => prev.map(app =>
               app.id === updatedApp.id ? updatedApp : app
             ))
             setEditingApplication(null)
             showToast('Application updated successfully!')
           }}
-          onDelete={(id) => {
+          onDelete={async (id) => {
+            try {
+              await applicationsApi.delete(id)
+            } catch (e) {
+              console.error('Failed to delete from backend:', e)
+            }
             setApplications(prev => prev.filter(app => app.id !== id))
             setEditingApplication(null)
             showToast('Application deleted', 'success')
@@ -7740,6 +9206,7 @@ function App() {
         <SettingsPanel
           applications={applications}
           resumeVersions={resumeVersions}
+          targetCompanies={targetCompanies}
           onClearData={handleClearData}
           onClose={() => setIsSettingsOpen(false)}
           onExport={handleExport}
@@ -7753,6 +9220,7 @@ function App() {
             setIsSettingsOpen(false)
             setShowAPISetupGuide(true)
           }}
+          onMigrateToCloud={handleMigrateToCloud}
         />
       )}
 

@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-// Register service worker for offline capability
+// Service worker disabled during development to prevent caching issues
+// To re-enable for production, uncomment the code below
+/*
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -13,6 +15,17 @@ if ('serviceWorker' in navigator) {
       .catch((error) => {
         console.log('SW registration failed:', error)
       })
+  })
+}
+*/
+
+// Unregister any existing service workers
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (let registration of registrations) {
+      registration.unregister()
+      console.log('SW unregistered')
+    }
   })
 }
 
